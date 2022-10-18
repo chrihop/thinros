@@ -1,0 +1,36 @@
+---
+Language:        Cpp
+BasedOnStyle:  WebKit
+
+AlignConsecutiveMacros: AcrossComments
+AlignConsecutiveDeclarations: AcrossComments
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveBitFields: AcrossComments
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+AlignTrailingComments: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Never
+AlwaysBreakAfterDefinitionReturnType: All
+BinPackArguments: true
+BinPackParameters: true
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyNamespace: false
+  
+BreakBeforeBraces: Allman
+ColumnLimit:     80
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+
