@@ -1,5 +1,5 @@
+#include "../lib/thinros_core.h"
 #include <stdio.h>
-#include "thinros_core.h"
 
 /*-- unit test section --*/
 #define UNIT_TEST

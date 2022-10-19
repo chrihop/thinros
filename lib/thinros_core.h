@@ -11,7 +11,7 @@
 
 #ifndef MODULE
 
-#if defined(STD_LIBC)
+#if defined(_STD_LIBC_)
 
 #ifndef __cplusplus
 # include <stdatomic.h>
@@ -55,7 +55,7 @@ trace(void)
     free(strs);
 }
 
-gcc_inline volatile unsigned long long
+gcc_inline unsigned long long
 time_ns(void)
 {
     struct timespec tp;

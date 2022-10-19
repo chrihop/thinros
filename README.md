@@ -16,8 +16,14 @@ cd build && cmake .. -DCMAKE_TOOLCHAIN_FILE=../target-linux-aarch64-tx2-gnu.cmak
 Then build and install the driver
 
 ```shell
-make driver
-make install_driver
+make thinros-driver
+make install-thinros
+```
+
+To uninstall the driver, run:
+
+```shell
+make remove-thinros
 ```
 
 ## How to use the kernel module?
@@ -42,10 +48,10 @@ sudo ./flash.sh -r -k kernel-dtb jetson-tx2 external
 
 ```shell
 # load the driver
-make install
+make install-thinros
 
 # unload the driver
-make uninstall
+make remove-thinros
 ```
 
 see `thinros_test.c`

@@ -23,7 +23,7 @@ message(STATUS "Kernel headers: ${KDIR}")
 if (KDIR)
 	set(KINC
 		${KDIR}/include
-		${KDIR}/arch/${ARCH}/include
+		${KDIR}/arch/${TARGET_ARCH}/include
 		CACHE PATH "Kernel headers include dirs"
 		)
 	set(KDIR_FOUND 1 CACHE STRING "Set to 1 if kernel headers were found")

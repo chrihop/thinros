@@ -15,4 +15,5 @@
 KBuild
 .idea/
 build/
+debug/
 Makefile
