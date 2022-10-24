@@ -250,12 +250,22 @@ struct topic_registry_t
     struct topic_registry_item_t topic[MAX_TOPICS];
 };
 
+enum partition_status_t
+{
+    PARTITION_UNINITIALIZED = 0,
+    PARTITION_INITIALIZED,
+    PARTITION_READY,
+    PARTITION_ERROR,
+    PARTITION_SHUTDOWN,
+};
+
 /**
  * Notice: do not instantiate to a local variable
  */
 struct topic_partition_t
 {
     size_t                    partition_id;
+    enum partition_status_t   status;
     struct topic_registry_t   registry;
     struct linear_allocator_t allocator;
     uint8_t                   topic_buffer[TOPIC_BUFFER_SIZE];

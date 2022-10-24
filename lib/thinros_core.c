@@ -535,6 +535,7 @@ topic_partition_init(struct topic_partition_t* par)
 {
     topic_registry_init(&par->registry);
     linear_allocator_init(&par->allocator, TOPIC_BUFFER_SIZE);
+    par->status = PARTITION_INITIALIZED;
 }
 
 static uintptr_t
@@ -625,7 +626,8 @@ thinros_node(
     struct node_handle_t* n, struct topic_partition_t* par, char* node_name)
 {
     n->par = par;
-    memcpy(n->node_name, node_name, NODE_NAME_SIZE);
+    size_t len = strnlen(node_name, NODE_NAME_SIZE);
+    memcpy(n->node_name, node_name, MIN(len, NODE_NAME_SIZE));
     n->n_subscribers = 0;
 }
 

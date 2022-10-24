@@ -14,10 +14,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(KernelHeaders REQUIRED)
 
 set(DRIVER thinros)
+
 if (CROSS_COMPILE)
-    set(KBUILD_CMD $(MAKE) -C ${KDIR} ARCH=${TARGET_ARCH} CROSS_COMPILE=${CROSS_COMPILE} M=${CMAKE_CURRENT_BINARY_DIR} src=${CMAKE_CURRENT_SOURCE_DIR} modules)
+    set(KBUILD_CMD $(MAKE) -C ${KDIR} ARCH=${TARGET_ARCH} CROSS_COMPILE=${CROSS_COMPILE} M=${CMAKE_CURRENT_BINARY_DIR} src=${CMAKE_CURRENT_SOURCE_DIR})
 else ()
-    set(KBUILD_CMD $(MAKE) -C ${KDIR} M=${CMAKE_CURRENT_BINARY_DIR} src=${CMAKE_CURRENT_SOURCE_DIR} modules)
+    set(KBUILD_CMD $(MAKE) -C ${KDIR} M=${CMAKE_CURRENT_BINARY_DIR} src=${CMAKE_CURRENT_SOURCE_DIR})
 endif ()
 
 set(DRIVER_SRC
@@ -40,17 +41,33 @@ file (
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${DRIVER}.ko
-    COMMAND ${KBUILD_CMD}
+    COMMAND ${KBUILD_CMD} modules
     DEPENDS ${DRIVER_SRC}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 #    COMMENTS "Building ${DRIVER}.ko"
     VERBATIM
 )
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${DRIVER}.ko.clean
+    COMMAND ${KBUILD_CMD} clean
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM
+)
+
 add_custom_target(
     ${DRIVER}-driver
-    EXCLUDE_FROM_ALL
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DRIVER}.ko
+)
+
+add_custom_target(
+    ${DRIVER}-driver-clean
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DRIVER}.ko.clean
+)
+
+add_dependencies(
+    extra-clean
+    ${DRIVER}-driver-clean
 )
 
 # only for symbol search

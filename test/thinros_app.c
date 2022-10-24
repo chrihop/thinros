@@ -51,7 +51,10 @@ int main(int argc, char** argv)
         return (EXIT_FAILURE);
     }
     /* no need to initialize the partition, if the partition is created by certikos first */
-//    topic_partition_init(ipc->par);
+    if (ipc->par->status == PARTITION_UNINITIALIZED)
+    {
+        topic_partition_init(ipc->par);
+    }
     topic_nonsecure_partition_init(ipc->par);
 
     /* create node */

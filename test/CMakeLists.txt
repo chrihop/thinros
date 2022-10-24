@@ -41,11 +41,21 @@ target_link_options(thinros_app
     PRIVATE -rdynamic)
 
 add_executable(thinros_cpp_app
-    thinros_app_cpp.cpp
+    thinros_app_cpp.cc
     )
 
 target_link_libraries(thinros_cpp_app
     PRIVATE thinros)
 
 target_link_options(thinros_cpp_app
+    PRIVATE -rdynamic)
+
+add_executable(thinros_app_helper
+    thinros_app_helper.cc
+    )
+
+target_link_libraries(thinros_app_helper
+    PRIVATE thinros)
+
+target_link_options(thinros_app_helper
     PRIVATE -rdynamic)

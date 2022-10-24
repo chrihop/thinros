@@ -4,6 +4,10 @@ project(thinros)
 set(CMAKE_C_STANDARD  11)
 set(CMAKE_CXX_STANDARD 20)
 
+add_custom_target(
+	extra-clean
+)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_compile_options(-g -ggdb -O0)
 	if (BAREMETAL)
