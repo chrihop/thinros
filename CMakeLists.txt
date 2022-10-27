@@ -23,7 +23,15 @@ add_subdirectory(drv)
 
 if (BAREMETAL)
 
+	list(APPEND THINROS_EXTRA_SRC
+		)
+
+
 else()
+
+	list(APPEND THINROS_EXTRA_SRC
+		lib/thinros_linux.c)
+
 
 	add_compile_definitions(
 		_STD_LIBC_
@@ -36,11 +44,42 @@ include_directories(${CMAKE_SOURCE_DIR})
 set(LIB_THINROS_SRC
 	lib/thinros_core.c
 	lib/thinros_cfg.c
-	lib/thinros_linux.c)
+	${THINROS_EXTRA_SRC})
 
 add_library(thinros STATIC
 	${LIB_THINROS_SRC}
 	)
+
+if (NOT BAREMETAL)
+
+add_library(thinros_shared SHARED
+	${LIB_THINROS_SRC}
+	)
+
+target_link_options(thinros_shared
+	PRIVATE
+	-fPIC -shared -ldl
+)
+
+add_custom_command(
+	TARGET thinros_shared
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:thinros_shared> ${CMAKE_SOURCE_DIR}/pythinros/libthinros.so
+)
+
+target_compile_options(
+	thinros_shared
+	PRIVATE
+	-fno-sanitize=all
+)
+
+target_link_options(
+	thinros_shared
+	PRIVATE
+	-fno-sanitize=all
+)
+
+endif()
 
 add_subdirectory(test)
 
