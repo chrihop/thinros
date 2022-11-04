@@ -5,6 +5,9 @@
 #define _1m				(_1k * _1k)
 #define _1g				(_1k * _1m)
 
+#define PM_NONSECURE_PARTITION_LOC  (0x80000000llu)
+#define PM_NONSECURE_PARTITION_SIZE (64llu * _1m)
+
 #define NONSECURE_PARTITION_LOC		((unsigned long) (PM_NONSECURE_PARTITION_LOC))
 #define NONSECURE_PARTITION_SIZE	((unsigned long) (PM_NONSECURE_PARTITION_SIZE))
 

@@ -145,7 +145,7 @@ void
 topic_ring_init(struct topic_ring_t* p_ring, size_t n, size_t elem_sz)
 {
     ASSERT(p_ring != NULL);
-    ASSERT(ADDR(p_ring) % 8 == 0); /* ensure ring is 8-byte aligned */
+    ASSERT(((uintptr_t) p_ring) % 8 == 0); /* ensure ring is 8-byte aligned */
     ASSERT(n <= MAX_RING_ELEMS);
 
     size_t               i;
