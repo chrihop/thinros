@@ -144,6 +144,8 @@ thinros_master_print(struct thinros_master_t* m)
 void
 topic_ring_init(struct topic_ring_t* p_ring, size_t n, size_t elem_sz)
 {
+    ASSERT(p_ring != NULL);
+    ASSERT(ADDR(p_ring) % 8 == 0); /* ensure ring is 8-byte aligned */
     ASSERT(n <= MAX_RING_ELEMS);
 
     size_t               i;
@@ -446,7 +448,15 @@ linear_allocator_init(struct linear_allocator_t* la, size_t total_sz)
 relative_addr_t
 linear_allocator_alloc(struct linear_allocator_t* la, size_t sz)
 {
+    /* ensure we only allocate on 8-byte aligned addresses */
+    size_t align_off = sz % 8;
+    if(align_off != 0)
+    {
+        sz += 8 - align_off;
+    }
+
     ASSERT(sz < la->size - la->brk);
+
     size_t loc = atomic_fetch_add(&la->brk, sz);
     return (loc);
 }

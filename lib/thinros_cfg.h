@@ -5,11 +5,11 @@
 #define _1m				(_1k * _1k)
 #define _1g				(_1k * _1m)
 
-#define NONSECURE_PARTITION_LOC		((unsigned long) (4llu * _1g))
-#define NONSECURE_PARTITION_SIZE	((unsigned long) (64llu * _1m))
+#define NONSECURE_PARTITION_LOC		((unsigned long) (PM_NONSECURE_PARTITION_LOC))
+#define NONSECURE_PARTITION_SIZE	((unsigned long) (PM_NONSECURE_PARTITION_SIZE))
 
-#define TOPIC_BUFFER_SIZE			(16 * _1m)
-#define MAX_MESSAGE_SIZE			(4096lu)
+#define TOPIC_BUFFER_SIZE			(4 * _1m)
+#define MAX_MESSAGE_SIZE			(8192lu)
 #define MAX_TOPICS					(64lu)
 #define MAX_TOPICS_SUBSCRIBE		(16lu) /* max number of topics allows to subscribe for each node */
 #define MAX_TOPICS_PUBLISH			(16lu)
@@ -17,7 +17,7 @@
 #define MAX_RING_ELEMS				(32lu) /* max number of elements a topic could buffer */
 #define NODE_NAME_SIZE				(32lu)
 #define PADDING_BYTES				(32lu)
-#define MAX_PARTITIONS				(2lu)
+#define MAX_PARTITIONS				(16lu)
 #define INVALID_TOPIC_UUID			(0lu)
 
 extern struct topic_namespace_t topic_namespace;
@@ -32,7 +32,17 @@ extern struct topic_namespace_t topic_namespace;
 #define msg_check(type)	\
 	static_assert(sizeof(type) <= MAX_MESSAGE_SIZE, "The size of "#type" is too long.")
 
-/* -- automatically generated -- */
+
+#define TROS_SCENARIO_SAFETY_CONTROLLER          (0)
+#define TROS_SCENARIO_BENCH_INTRA_PARTITION      (0)
+#define TROS_SCENARIO_SECURE_GATEWAY             (1)
+#define TROS_SCENARIO_BENCH_CROSS_PARTITION      (0)
+#define TROS_SCENARIO_BENCH_CROSS_CORE           (0)
+#define TROS_SCENARIO_BENCH_CROSS_WORLD          (0)
+
+
+
+/* SAFETY CONTROLLER */
 struct msg_float32_t
 {
 	float	value;
@@ -44,13 +54,67 @@ typedef struct msg_float32_t		msg_throttle_t;
 typedef struct msg_lidar_t
 {
 	unsigned int	size;
-	unsigned char	value[4000];
+	unsigned char	value[6132];
 } msg_lidar_t;
 
 msg_check(msg_steer_t);
 msg_check(msg_throttle_t);
 msg_check(msg_lidar_t);
-/* ---- */
+
+/* Mavlink Gateway */
+
+#define MAX_MAVLINK_MSG_SIZE		(280lu)
+
+typedef struct msg_mavlink_t
+{
+    unsigned long len;
+    unsigned char data[MAX_MAVLINK_MSG_SIZE];
+} msg_mavlink_t;
+
+msg_check(msg_mavlink_t);
+
+/* BENCHMARK */
+typedef enum
+{
+    MSG_BENCHMARK_RESULT_DATA_POINT
+} msg_benchmark_result_type_t;
+
+
+typedef struct
+{
+    unsigned long long int times[128];
+} msg_benchmark_results_t;
+
+
+typedef struct
+{
+    unsigned int value;
+} msg_benchmark_sz_4_t;
+
+typedef struct
+{
+    unsigned int value[4];
+} msg_benchmark_sz_16_t;
+
+typedef struct
+{
+    unsigned int value[16];
+} msg_benchmark_sz_64_t;
+
+typedef struct
+{
+    unsigned int value[64];
+} msg_benchmark_sz_256_t;
+
+typedef struct
+{
+    unsigned int value[256];
+} msg_benchmark_sz_1K_t;
+
+typedef struct
+{
+    unsigned int value[1024];
+} msg_benchmark_sz_4K_t;
 
 
 #endif /* !_THINROS_CFG_H_ */
