@@ -40,6 +40,19 @@ target_link_libraries(thinros_app
 target_link_options(thinros_app
     PRIVATE -rdynamic)
 
+add_executable(thinros_app_udp
+    thinros_app_udp.c
+    )
+
+target_link_libraries(thinros_app_udp
+    PRIVATE
+    thinros)
+
+target_link_options(thinros_app_udp
+    PRIVATE -rdynamic)
+
+
+
 add_executable(thinros_cpp_app
     thinros_app_cpp.cc
     )
