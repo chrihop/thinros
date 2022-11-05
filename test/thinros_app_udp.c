@@ -24,6 +24,8 @@ struct subscriber_t mav_msg_sub;    //thinros msg -> udp
 
 msg_mavlink_t mav_msg;  //to be published to the secure world
 
+int sockfd = -1;
+
 #define PORT    14660 
 #define BUFSIZE 512 
 
@@ -45,7 +47,7 @@ void printf_hex(uint8_t* data, int n)
 
 int main(int argc, char** argv)
 {    
-    int sockfd;
+    
     uint8_t buffer[BUFSIZE];
     struct sockaddr_in server_addr, client_addr; 
 
