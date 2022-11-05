@@ -36,15 +36,6 @@ extern struct topic_namespace_t topic_namespace;
 	static_assert(sizeof(type) <= MAX_MESSAGE_SIZE, "The size of "#type" is too long.")
 
 
-#define TROS_SCENARIO_SAFETY_CONTROLLER          (0)
-#define TROS_SCENARIO_BENCH_INTRA_PARTITION      (0)
-#define TROS_SCENARIO_SECURE_GATEWAY             (1)
-#define TROS_SCENARIO_BENCH_CROSS_PARTITION      (0)
-#define TROS_SCENARIO_BENCH_CROSS_CORE           (0)
-#define TROS_SCENARIO_BENCH_CROSS_WORLD          (0)
-
-
-
 /* SAFETY CONTROLLER */
 struct msg_float32_t
 {

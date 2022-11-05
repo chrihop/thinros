@@ -8,6 +8,19 @@ add_custom_target(
 	extra-clean
 )
 
+option(BUILD_FOR_SECURE_GATEWAY "Build for secure gateway" OFF)
+
+if (BUILD_FOR_SECURE_GATEWAY)
+	message(STATUS "Build for secure gateway")
+	add_definitions(-DTROS_SCENARIO_SECURE_GATEWAY)
+endif()
+
+if (BUILD_FOR_SAFETY_CONTROLLER)
+	message(STATUS "Build for safety controller")
+	add_definitions(-DTROS_SCENARIO_SAFETY_CONTROLLER)
+endif()
+
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_compile_options(-g -ggdb -O0)
 	if (BAREMETAL)
