@@ -67,6 +67,16 @@ typedef struct msg_mavlink_t
 
 msg_check(msg_mavlink_t);
 
+/* Crypto Server */
+typedef struct encryption_service_t
+{
+    unsigned char id;
+    unsigned long len;
+    unsigned char data[128];
+} encryption_service_t;
+
+msg_check(encryption_service_t);
+
 /* BENCHMARK */
 typedef enum
 {
