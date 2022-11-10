@@ -39,10 +39,15 @@
 #define panic(FMT, ...)		do { pr_alert(DEVID ": " FMT, ##__VA_ARGS__); dump_stack(); } while(0)
 #define assert(x)		do { if (unlikely(!(x))) { panic("`%s` not satisfied.\n", #x); } } while (0)
 
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 typedef int			vm_fault_t;
+#else
+typedef unsigned int		vm_fault_t;
+#endif
+
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0)
+
 typedef struct file_operations	proc_ops_t;
 #define proc_ops_init(x, _open, _read, _write, _release, _mmap) \
 	proc_ops_t x = { \
@@ -71,7 +76,7 @@ typedef struct proc_ops		proc_ops_t;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 
-#define vmf_address(vmf)	((unsigned long) (vmf)->virtual_address)
+#define mf_address(vmf)	((unsigned long) (vmf)->virtual_address)
 
 #else
 
