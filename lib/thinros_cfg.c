@@ -34,7 +34,7 @@ struct topic_namespace_t topic_namespace =
 {
     .n = 4,
     .topic = {
-        {.name = "mav_gateway_out", .uuid = 0, .length = 16, .elem_sz = sizeof(msg_mavlink_t)},
+        {.name = "mav_gateway_out", .uuid = 0, .length = 511, .elem_sz = sizeof(msg_mavlink_t)},
         {.name = "mav_gateway_in",  .uuid = 1, .length = 16, .elem_sz = sizeof(msg_mavlink_t)},
         {.name = "cipher_text", .uuid = 2, .length = 16, .elem_sz = sizeof(encryption_service_t)},
         {.name = "enc_request",  .uuid = 3, .length = 16, .elem_sz = sizeof(encryption_service_t)},

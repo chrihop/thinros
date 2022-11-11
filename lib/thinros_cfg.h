@@ -12,15 +12,15 @@
 #define NONSECURE_PARTITION_SIZE	((unsigned long) (PM_NONSECURE_PARTITION_SIZE))
 
 #define TOPIC_BUFFER_SIZE			(4 * _1m)
-#define MAX_MESSAGE_SIZE			(8192lu)
-#define MAX_TOPICS					(64lu)
-#define MAX_TOPICS_SUBSCRIBE		(16lu) /* max number of topics allows to subscribe for each node */
-#define MAX_TOPICS_PUBLISH			(16lu)
+#define MAX_MESSAGE_SIZE			(512lu)
+#define MAX_TOPICS					(8lu)
+#define MAX_TOPICS_SUBSCRIBE		(8lu) /* max number of topics allows to subscribe for each node */
+#define MAX_TOPICS_PUBLISH			(8lu)
 #define TOPIC_NAME_SIZE				(32lu)
-#define MAX_RING_ELEMS				(32lu) /* max number of elements a topic could buffer */
+#define MAX_RING_ELEMS				(512lu) /* max number of elements a topic could buffer */
 #define NODE_NAME_SIZE				(32lu)
 #define PADDING_BYTES				(32lu)
-#define MAX_PARTITIONS				(16lu)
+#define MAX_PARTITIONS				(4lu)
 #define INVALID_TOPIC_UUID			(0lu)
 
 extern struct topic_namespace_t topic_namespace;
@@ -53,7 +53,7 @@ typedef struct msg_lidar_t
 
 msg_check(msg_steer_t);
 msg_check(msg_throttle_t);
-msg_check(msg_lidar_t);
+//msg_check(msg_lidar_t);
 
 /* Mavlink Gateway */
 
