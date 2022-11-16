@@ -49,7 +49,6 @@ on_mav_msg(void* data)
 {
     // message received from secure world
     msg_mavlink_t* msg = (msg_mavlink_t*)data;
-    printf("mavlink message from secure world. Sending it out through udp\n");
     if (connected)
     {
         int msg_id = msg->data[9] << 16 | msg->data[8] << 8 | msg->data[7];
