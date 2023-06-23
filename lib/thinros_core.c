@@ -4,14 +4,15 @@
 void
 topic_ring_print(struct topic_ring_t* r)
 {
+    atomic_size_t head = atomic_load(&r->head);
     info("ring @0x%lx (len %lu elem_sz %lu) head %lu: ", (uintptr_t)r, r->n,
-        r->elem_sz, r->head);
-    size_t tail = (r->head > r->n) > 0 ? (r->head - r->n) : 0;
-    for (size_t i = tail; i < r->head; i++)
+        r->elem_sz, head);
+    size_t tail = (head > r->n) > 0 ? (head - r->n) : 0;
+    for (size_t i = tail; i < head; i++)
     {
         struct topic_data_t* data = of(r, i % r->n);
         info("< %lu : %s (%lu) >", i,
-            data->status == TOPIC_READY ? "ready" : "empty", data->timestamp);
+            atomic_load(&data->status) == TOPIC_READY ? "ready" : "empty", data->timestamp);
     }
     info("\n");
 }
@@ -20,8 +21,9 @@ void
 topic_ring_print_details(struct topic_ring_t* r)
 {
     topic_ring_print(r);
-    size_t tail = (r->head - r->n) > 0 ? (r->head - r->n) : 0;
-    for (size_t i = tail; i < r->head; i++)
+    atomic_size_t head = atomic_load(&r->head);
+    size_t        tail = (head - r->n) > 0 ? (head - r->n) : 0;
+    for (size_t i = tail; i < head; i++)
     {
         struct topic_data_t* data = of(r, i % r->n);
         info("%lu: ", i);
@@ -145,18 +147,18 @@ void
 topic_ring_init(struct topic_ring_t* p_ring, size_t n, size_t elem_sz)
 {
     ASSERT(p_ring != NULL);
-    ASSERT(((uintptr_t) p_ring) % 8 == 0); /* ensure ring is 8-byte aligned */
+    ASSERT(((uintptr_t)p_ring) % 8 == 0); /* ensure ring is 8-byte aligned */
     ASSERT(n <= MAX_RING_ELEMS);
 
     size_t               i;
     struct topic_ring_t* r = p_ring;
-    r->head                = 0;
-    r->n                   = n;
-    r->elem_sz             = elem_sz + sizeof(struct topic_data_t);
+    atomic_store(&r->head, 0);
+    r->n       = n;
+    r->elem_sz = elem_sz + sizeof(struct topic_data_t);
     for (i = 0; i < n; i++)
     {
         struct topic_data_t* data = of(r, i);
-        data->status              = TOPIC_EMPTY;
+        atomic_init(&data->status, TOPIC_EMPTY);
     }
 }
 
@@ -166,10 +168,10 @@ topic_ring_alloc(struct topic_ring_t* r)
     ASSERT(r != NULL);
     ASSERT(r->n != 0 && "ring is not initialized.");
 
-    size_t               loc  = atomic_fetch_add(&r->head, 1);
+    atomic_size_t        loc  = atomic_fetch_add(&r->head, 1);
     size_t               idx  = loc % r->n;
     struct topic_data_t* data = of(r, idx);
-    atomic_store(&data->status, TOPIC_EMPTY);
+    atomic_init(&data->status, TOPIC_EMPTY);
     data->timestamp = loc;
     return idx;
 }
@@ -238,8 +240,8 @@ topic_reader_sync(struct topic_reader_t* rd)
     ASSERT(rd != NULL);
     ASSERT(rd->ring != NULL);
 
-    size_t hd = rd->ring->head;
-    size_t n  = rd->ring->n;
+    atomic_size_t hd = atomic_load(&rd->ring->head);
+    size_t        n  = rd->ring->n;
 
     size_t tl     = hd > n ? (hd - n) : 0;
     /* fast-forward: skip overwritten elements */
@@ -271,7 +273,7 @@ topic_reader_read_next(struct topic_reader_t* rd)
     size_t idx;
     idx                       = rd->read_tail % rd->ring->n;
     struct topic_data_t* data = of(rd->ring, idx);
-    if (data->status == TOPIC_EMPTY)
+    if (atomic_load(&data->status) == TOPIC_EMPTY)
     {
         /* topic not ready to read */
         return NULL;
@@ -298,7 +300,7 @@ topic_reader_read_eager(struct topic_reader_t* rd)
     {
         size_t               idx = i % rd->ring->n;
         struct topic_data_t* cur = of(rd->ring, idx);
-        if (cur->status == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
+        if (atomic_load(&cur->status) == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
         {
             rd->index     = idx;
             rd->timestamp = cur->timestamp;
@@ -317,7 +319,7 @@ topic_reader_complete(struct topic_reader_t* rd)
     struct topic_data_t* data = of(rd->ring, rd->index);
     /* check if the data has been overwritten during the reading */
     bool                 consistent
-        = (data->status == TOPIC_READY && data->timestamp == rd->timestamp);
+        = (atomic_load(&data->status) == TOPIC_READY && data->timestamp == rd->timestamp);
     rd->read_ring[rd->index] = READER_HAS_READ;
     for (i = rd->read_tail; i < rd->read_head; i++)
     {
@@ -353,7 +355,7 @@ topic_reader_read_all(struct topic_reader_t* rd, void* buffer, size_t sz,
     {
         size_t               idx = i % rd->ring->n;
         struct topic_data_t* cur = of(rd->ring, idx);
-        if (cur->status == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
+        if (atomic_load(&cur->status) == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
         {
             rd->index     = idx;
             rd->timestamp = cur->timestamp;
@@ -392,7 +394,7 @@ topic_ring_copy(struct topic_reader_t* rd, struct topic_writer_t* wr)
     {
         size_t               idx = i % rd->ring->n;
         struct topic_data_t* src = of(rd->ring, idx);
-        if (src->status == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
+        if (atomic_load(&src->status) == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
         {
             rd->index                = idx;
             rd->timestamp            = src->timestamp;
@@ -431,7 +433,7 @@ topic_reader_read(struct topic_reader_t* rd, void* dest, size_t sz)
         /* nothing to read */
         return false;
     }
-    ASSERT(data->status == TOPIC_READY);
+    ASSERT(atomic_load(&data->status) == TOPIC_READY);
     memcpy(dest, data->data, sz);
     succ = topic_reader_complete(rd);
 
@@ -450,14 +452,14 @@ linear_allocator_alloc(struct linear_allocator_t* la, size_t sz)
 {
     /* ensure we only allocate on 8-byte aligned addresses */
     size_t align_off = sz % 8;
-    if(align_off != 0)
+    if (align_off != 0)
     {
         sz += 8 - align_off;
     }
 
     ASSERT(sz < la->size - la->brk);
 
-    size_t loc = atomic_fetch_add(&la->brk, sz);
+    atomic_size_t loc = atomic_fetch_add(&la->brk, sz);
     return (loc);
 }
 
@@ -545,7 +547,7 @@ topic_partition_init(struct topic_partition_t* par)
 {
     topic_registry_init(&par->registry);
     linear_allocator_init(&par->allocator, TOPIC_BUFFER_SIZE);
-    par->status = PARTITION_INITIALIZED;
+    atomic_init(&par->status, PARTITION_INITIALIZED);
 }
 
 static uintptr_t
@@ -635,29 +637,32 @@ void
 thinros_node(
     struct node_handle_t* n, struct topic_partition_t* par, char* node_name)
 {
-    n->par = par;
+    n->par     = par;
     size_t len = strnlen(node_name, NODE_NAME_SIZE);
     memcpy(n->node_name, node_name, MIN(len, NODE_NAME_SIZE));
     n->n_subscribers = 0;
 }
 
-struct topic_ring_t *
-get_local_ring(struct topic_partition_t * par, struct topic_registry_item_t * topic)
+struct topic_ring_t*
+get_local_ring(
+    struct topic_partition_t* par, struct topic_registry_item_t* topic)
 {
-    struct topic_ring_t * r;
-    r = (struct topic_ring_t *)topic_partition_get_addr(par, topic->local_ring);
-    ASSERT((void *) &par->topic_buffer <= (void *)r &&
-           (void *)r < (void *)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
+    struct topic_ring_t* r;
+    r = (struct topic_ring_t*)topic_partition_get_addr(par, topic->local_ring);
+    ASSERT((void*)&par->topic_buffer <= (void*)r
+           && (void*)r < (void*)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
     return (r);
 }
 
-struct topic_ring_t *
-get_external_ring(struct topic_partition_t * par, struct topic_registry_item_t * topic)
+struct topic_ring_t*
+get_external_ring(
+    struct topic_partition_t* par, struct topic_registry_item_t* topic)
 {
-    struct topic_ring_t * r;
-    r = (struct topic_ring_t *)topic_partition_get_addr(par, topic->external_ring);
-    ASSERT((void *) &par->topic_buffer <= (void *)r &&
-           (void *)r < (void *)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
+    struct topic_ring_t* r;
+    r = (struct topic_ring_t*)topic_partition_get_addr(
+        par, topic->external_ring);
+    ASSERT((void*)&par->topic_buffer <= (void*)r
+           && (void*)r < (void*)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
     return (r);
 }
 
@@ -710,7 +715,7 @@ thinros_subscribe(_in struct subscriber_t* subscriber,
         = topic_partition_get_by_name(n->par, topic_name);
     topic->to_subscribe = TRUE;
 
-    struct topic_ring_t * local, * external;
+    struct topic_ring_t *local, *external;
     local    = get_local_ring(n->par, topic);
     external = get_external_ring(n->par, topic);
     topic_reader_init(&subscriber->local_reader, local);
@@ -843,14 +848,14 @@ static void
 thinros_master_connect_topics_per_partition(
     struct topic_replicator_t* rep, struct topic_partition_t* par)
 {
-    size_t i;
-    struct topic_registry_t * topics = &par->registry;
+    size_t                   i;
+    struct topic_registry_t* topics = &par->registry;
     for (i = 0; i < topics->n; i++)
     {
-        struct topic_registry_item_t * topic = &topics->topic[i];
+        struct topic_registry_item_t* topic = &topics->topic[i];
         if (topic->uuid == rep->topic_uuid && topic->to_publish == TRUE)
         {
-            struct topic_ring_t * local = get_local_ring(par, topic);
+            struct topic_ring_t* local = get_local_ring(par, topic);
             topic_replicator_connect(rep, local);
         }
     }
@@ -895,7 +900,8 @@ thinros_master_build(struct thinros_master_t* m)
             /* subscribe, requires a replicator */
             struct topic_replicator_t* rep
                 = &par->replicators[par->n_replicators++];
-            struct topic_ring_t * external_ring = get_external_ring(par->address, topic);
+            struct topic_ring_t* external_ring
+                = get_external_ring(par->address, topic);
             topic_replicator_init(rep, topic->uuid, external_ring);
             thinros_master_connect_topics(rep, i, m);
         }
