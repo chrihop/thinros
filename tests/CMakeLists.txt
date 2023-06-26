@@ -1,22 +1,24 @@
 cmake_minimum_required(VERSION 3.13)
 
-if (BAREMETAL)
-    return()
-endif()
+message(STATUS "Building tests for linux user processes")
 
-message(STATUS "Building with the Linux")
+if (THINROS_UNIT_TEST)
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.12.1
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
 
-#include(FetchContent)
-#FetchContent_Declare(
-#    googletest
-#    GIT_REPOSITORY https://github.com/google/googletest.git
-#    GIT_TAG release-1.12.1
-#)
-## For Windows: Prevent overriding the parent project's compiler/linker settings
-#set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-#FetchContent_MakeAvailable(googletest)
-#
-#enable_testing()
+    enable_testing()
+endif ()
+
+include_directories(
+    ${THINROS_SRC_DIR}/lib
+    ${THINROS_GEN_INC})
 
 add_executable(thinros_test
     thinros_test.c

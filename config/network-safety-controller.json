@@ -1,0 +1,60 @@
+{
+  "$schema": "https://github.com/chrihop/thinros/blob/v2/lib/topic.schema.json",
+  "topics": [
+    {
+      "name": "drv_steer",
+      "queue_length": 32,
+      "c_definition": [
+        "float value"
+      ]
+    },
+    {
+      "name": "drv_throttle",
+      "queue_length": 32,
+      "c_definition": [
+        "float value"
+      ]
+    },
+    {
+      "name": "fwd_scan",
+      "queue_length": 8,
+      "c_definition": [
+        "unsigned int size",
+        "unsigned char value[256]"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "name": "proxy",
+        "publish": ["drv_steer", "drv_throttle"],
+        "subscribe": ["fwd_scan"]
+      },
+      {
+        "name": "safety_controller",
+        "publish": ["fwd_scan"],
+        "subscribe": ["drv_steer", "drv_throttle"]
+      },
+      {
+        "name": "fake_lidar",
+        "publish": ["fwd_scan"],
+        "subscribe": []
+      }
+    ],
+    "partitions": [
+      {
+        "id": 0,
+        "nodes": ["proxy"]
+      },
+      {
+        "id": 1,
+        "nodes": ["safety_controller"]
+      },
+      {
+        "id": 2,
+        "nodes": ["fake_lidar"]
+      }
+    ]
+  }
+}

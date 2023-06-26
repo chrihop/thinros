@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string>
-#include "lib/thinros_core.h"
-#include "lib/thinros_linux.h"
+#include "thinros_core.h"
+#include "thinros_linux.h"
 
 using namespace std;
 

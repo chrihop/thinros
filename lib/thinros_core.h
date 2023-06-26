@@ -1,7 +1,7 @@
 #ifndef _THINROS_CORE_H_
 #define _THINROS_CORE_H_
 
-#include "thinros_cfg.h"
+#include <thinros_cfg.h>
 
 #define _in
 #define _out
@@ -225,6 +225,7 @@ struct topic_namespace_item_t
     const size_t      uuid;
     const size_t      length;
     const size_t      elem_sz;
+    const size_t      pub_pars;
 };
 
 struct topic_namespace_t
@@ -235,13 +236,23 @@ struct topic_namespace_t
 
 typedef size_t relative_addr_t;
 
+enum publish_pattern_t
+{
+    PUBLISH_NONE = 0,
+    PUBLISH_LOCAL = 0b01,
+    PUBLISH_CROSS_PARTITION = 0b10,
+    PUBLISH_BOTH = 0b11
+};
+
 struct topic_registry_item_t
 {
     size_t          uuid;
+    size_t          index;
+    enum publish_pattern_t pattern;
     bool            to_publish;
     bool            to_subscribe;
     relative_addr_t local_ring;
-    relative_addr_t external_ring;
+    relative_addr_t shadow_ring;
 };
 
 struct topic_registry_t
@@ -275,7 +286,8 @@ struct publisher_t
 {
     size_t                    topic_uuid;
     struct topic_partition_t* partition;
-    struct topic_writer_t     writer;
+    size_t                    topic_idx;
+    struct topic_writer_t     wr_local, wr_shadow;
 };
 
 typedef void (*thinros_callback_on_t)(void* data);
@@ -284,8 +296,7 @@ struct subscriber_t
 {
     size_t                topic_uuid;
     thinros_callback_on_t callback;
-    struct topic_reader_t local_reader;
-    struct topic_reader_t external_reader;
+    struct topic_reader_t reader;
 };
 
 struct node_handle_t
@@ -301,14 +312,14 @@ struct node_handle_t
 /**
  *                  ┌─────── replicator ─────┐
  *                  │                        │
- * ( Local Ring )──►r-reader───┐
- *                             │
- *                             │
- * ( Local Ring )──►r-reader ──┼─► r-writer ───►( External Ring )
- *                             │
- *     ...                     │
- *                             │
- * ( Local Ring )──►r-reader───┘
+ * ( Shadow Ring )──►r-reader───┐
+ *                              │
+ *                              │
+ * ( Shadow Ring )──►r-reader ──┼─► r-writer ───►( Local Ring )
+ *                              │
+ *     ...                      │
+ *                              │
+ * ( Shadow Ring )──►r-reader───┘
  */
 struct topic_replicator_t
 {
@@ -387,7 +398,7 @@ struct topic_namespace_item_t * topic_namespace_query_by_name(char * name);
 struct topic_namespace_item_t * topic_namespace_query_by_uuid(size_t uuid);
 
 struct topic_ring_t * get_local_ring(struct topic_partition_t * par, struct topic_registry_item_t * topic);
-struct topic_ring_t * get_external_ring(struct topic_partition_t * par, struct topic_registry_item_t * topic);
+struct topic_ring_t * get_shadow_ring(struct topic_partition_t * par, struct topic_registry_item_t * topic);
 
 struct topic_registry_item_t * topic_registry_query(struct topic_registry_t * reg, size_t uuid);
 void topic_partition_init(struct topic_partition_t * par);

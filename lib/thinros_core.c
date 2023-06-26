@@ -7,12 +7,15 @@ topic_ring_print(struct topic_ring_t* r)
     atomic_size_t head = atomic_load(&r->head);
     info("ring @0x%lx (len %lu elem_sz %lu) head %lu: ", (uintptr_t)r, r->n,
         r->elem_sz, head);
+    ASSERT(r->n > 0 && r->n < MAX_RING_ELEMS);
+    ASSERT(r->elem_sz > 0 && r->elem_sz < MAX_MESSAGE_SIZE);
     size_t tail = (head > r->n) > 0 ? (head - r->n) : 0;
     for (size_t i = tail; i < head; i++)
     {
         struct topic_data_t* data = of(r, i % r->n);
         info("< %lu : %s (%lu) >", i,
-            atomic_load(&data->status) == TOPIC_READY ? "ready" : "empty", data->timestamp);
+            atomic_load(&data->status) == TOPIC_READY ? "ready" : "empty",
+            data->timestamp);
     }
     info("\n");
 }
@@ -75,15 +78,17 @@ void
 thinros_subscriber_print(struct subscriber_t* s)
 {
     info("subscriber: 0x%lx, callback: 0x%lx ", (size_t)s, (size_t)s->callback);
-    topic_reader_print(&s->local_reader);
-    topic_reader_print(&s->external_reader);
+    topic_reader_print(&s->reader);
 }
 
 void
 thinros_publisher_print(struct publisher_t* p)
 {
     info("publisher: 0x%lx, ", (size_t)p);
-    topic_writer_print(&p->writer);
+    info("local: ");
+    topic_writer_print(&p->wr_local);
+    info("shadow: ");
+    topic_writer_print(&p->wr_shadow);
 }
 
 void
@@ -96,9 +101,8 @@ thinros_node_print(struct node_handle_t* n)
         struct subscriber_t*           s = n->subscribers[i];
         struct topic_namespace_item_t* ns
             = topic_namespace_query_by_uuid(s->topic_uuid);
-        info("on topic `%s` (uuid: %lu, local 0x%lx external 0x%lx), ",
-            ns->name, s->topic_uuid, (size_t)s->local_reader.ring,
-            (size_t)s->external_reader.ring);
+        info("on topic `%s` (uuid: %lu, reader 0x%lx), ",
+            ns->name, s->topic_uuid, (size_t)s->reader.ring);
     }
     info("\n");
 }
@@ -110,9 +114,9 @@ topic_partition_print(struct topic_partition_t* par)
     for (size_t i = 0; i < par->registry.n; i++)
     {
         struct topic_registry_item_t* t = &par->registry.topic[i];
-        info("  [uuid %8lu %c %c local 0x%lx external 0x%lx]\n", t->uuid,
+        info("  [uuid %8lu %c %c local 0x%lx shadow 0x%lx]\n", t->uuid,
             t->to_publish ? 'P' : ' ', t->to_subscribe ? 'S' : ' ',
-            (size_t)t->local_ring, (size_t)t->external_ring);
+            (size_t)t->local_ring, (size_t)t->shadow_ring);
     }
 }
 
@@ -300,7 +304,8 @@ topic_reader_read_eager(struct topic_reader_t* rd)
     {
         size_t               idx = i % rd->ring->n;
         struct topic_data_t* cur = of(rd->ring, idx);
-        if (atomic_load(&cur->status) == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
+        if (atomic_load(&cur->status) == TOPIC_READY
+            && rd->read_ring[idx] == READER_NOT_READ)
         {
             rd->index     = idx;
             rd->timestamp = cur->timestamp;
@@ -315,12 +320,12 @@ bool
 topic_reader_complete(struct topic_reader_t* rd)
 {
     size_t               i;
-    size_t               n    = rd->ring->n;
-    struct topic_data_t* data = of(rd->ring, rd->index);
+    size_t               n          = rd->ring->n;
+    struct topic_data_t* data       = of(rd->ring, rd->index);
     /* check if the data has been overwritten during the reading */
-    bool                 consistent
-        = (atomic_load(&data->status) == TOPIC_READY && data->timestamp == rd->timestamp);
-    rd->read_ring[rd->index] = READER_HAS_READ;
+    bool                 consistent = (atomic_load(&data->status) == TOPIC_READY
+                       && data->timestamp == rd->timestamp);
+    rd->read_ring[rd->index]        = READER_HAS_READ;
     for (i = rd->read_tail; i < rd->read_head; i++)
     {
         if (rd->read_ring[i % n] == READER_NOT_READ)
@@ -355,7 +360,8 @@ topic_reader_read_all(struct topic_reader_t* rd, void* buffer, size_t sz,
     {
         size_t               idx = i % rd->ring->n;
         struct topic_data_t* cur = of(rd->ring, idx);
-        if (atomic_load(&cur->status) == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
+        if (atomic_load(&cur->status) == TOPIC_READY
+            && rd->read_ring[idx] == READER_NOT_READ)
         {
             rd->index     = idx;
             rd->timestamp = cur->timestamp;
@@ -394,7 +400,8 @@ topic_ring_copy(struct topic_reader_t* rd, struct topic_writer_t* wr)
     {
         size_t               idx = i % rd->ring->n;
         struct topic_data_t* src = of(rd->ring, idx);
-        if (atomic_load(&src->status) == TOPIC_READY && rd->read_ring[idx] == READER_NOT_READ)
+        if (atomic_load(&src->status) == TOPIC_READY
+            && rd->read_ring[idx] == READER_NOT_READ)
         {
             rd->index                = idx;
             rd->timestamp            = src->timestamp;
@@ -509,17 +516,19 @@ topic_registry_init(struct topic_registry_t* reg)
 
 static struct topic_registry_item_t*
 topic_registry_insert(struct topic_registry_t* reg, size_t uuid,
-    relative_addr_t local_ring, relative_addr_t external_ring)
+    relative_addr_t local_ring, relative_addr_t shadow_ring)
 {
     ASSERT(reg->n < MAX_TOPICS);
     size_t idx = atomic_fetch_add(&reg->n, 1);
     ASSERT(idx < MAX_TOPICS && "too many topics!");
 
-    reg->topic[idx].uuid          = uuid;
-    reg->topic[idx].local_ring    = local_ring;
-    reg->topic[idx].external_ring = external_ring;
-    reg->topic[idx].to_publish    = FALSE;
-    reg->topic[idx].to_subscribe  = FALSE;
+    reg->topic[idx].uuid         = uuid;
+    reg->topic[idx].index        = idx;
+    reg->topic[idx].pattern      = PUBLISH_NONE;
+    reg->topic[idx].local_ring   = local_ring;
+    reg->topic[idx].shadow_ring  = shadow_ring;
+    reg->topic[idx].to_publish   = FALSE;
+    reg->topic[idx].to_subscribe = FALSE;
     return &reg->topic[idx];
 }
 
@@ -571,29 +580,55 @@ topic_nonsecure_partition_init(struct topic_partition_t* par)
     linear_allocator_init(&par->allocator, TOPIC_BUFFER_SIZE);
 }
 
+static relative_addr_t
+topic_partition_create_local_ring(
+    struct topic_partition_t* par, size_t elem_sz, size_t length)
+{
+    relative_addr_t      ra;
+    struct topic_ring_t* ring;
+
+    size_t sz = sizeof(struct topic_ring_t)
+              + ((sizeof(struct topic_data_t) + elem_sz) * length)
+              + PADDING_BYTES;
+    ra   = linear_allocator_alloc(&par->allocator, sz);
+    ring = (struct topic_ring_t*)topic_partition_get_addr(par, ra);
+    topic_ring_init(ring, length, elem_sz);
+    return ra;
+}
+
+static relative_addr_t
+topic_partition_create_shadow_ring(struct topic_partition_t* par,
+    size_t elem_sz, size_t length, size_t pub_pars)
+{
+    relative_addr_t      ra;
+    struct topic_ring_t* ring;
+
+    size_t shadow_length = length / pub_pars;
+    size_t sz            = sizeof(struct topic_ring_t)
+              + ((sizeof(struct topic_data_t) + elem_sz) * shadow_length)
+              + PADDING_BYTES;
+    ra   = linear_allocator_alloc(&par->allocator, sz);
+    ring = (struct topic_ring_t*)topic_partition_get_addr(par, ra);
+    topic_ring_init(ring, shadow_length, elem_sz);
+    return ra;
+}
+
 static struct topic_registry_item_t*
 topic_partition_register(
     struct topic_partition_t* par, struct topic_namespace_item_t* ns)
 {
     ASSERT(par != NULL);
     ASSERT(ns != NULL);
-    relative_addr_t      ra_local_ring, ra_ext_ring;
-    struct topic_ring_t *lr, *er;
+    relative_addr_t               ra_local_ring, ra_shadow_ring;
+    struct topic_registry_item_t* topic;
 
-    size_t sz = sizeof(struct topic_ring_t)
-              + ((sizeof(struct topic_data_t) + ns->elem_sz) * ns->length)
-              + PADDING_BYTES;
+    ra_local_ring
+        = topic_partition_create_local_ring(par, ns->elem_sz, ns->length);
+    ra_shadow_ring = topic_partition_create_shadow_ring(
+        par, ns->elem_sz, ns->length, ns->pub_pars);
 
-    ra_local_ring = linear_allocator_alloc(&par->allocator, sz);
-    ra_ext_ring   = linear_allocator_alloc(&par->allocator, sz);
-
-    lr = (struct topic_ring_t*)topic_partition_get_addr(par, ra_local_ring);
-    er = (struct topic_ring_t*)topic_partition_get_addr(par, ra_ext_ring);
-
-    topic_ring_init(lr, ns->length, ns->elem_sz);
-    topic_ring_init(er, ns->length, ns->elem_sz);
-    struct topic_registry_item_t* topic = topic_registry_insert(
-        &par->registry, ns->uuid, ra_local_ring, ra_ext_ring);
+    topic = topic_registry_insert(
+        &par->registry, ns->uuid, ra_local_ring, ra_shadow_ring);
 
     return topic;
 }
@@ -649,20 +684,19 @@ get_local_ring(
 {
     struct topic_ring_t* r;
     r = (struct topic_ring_t*)topic_partition_get_addr(par, topic->local_ring);
-    ASSERT((void*)&par->topic_buffer <= (void*)r
-           && (void*)r < (void*)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
+    ASSERT((uintptr_t)&par->topic_buffer <= (uintptr_t)r);
+    ASSERT((uintptr_t)r < (uintptr_t)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
     return (r);
 }
 
 struct topic_ring_t*
-get_external_ring(
+get_shadow_ring(
     struct topic_partition_t* par, struct topic_registry_item_t* topic)
 {
     struct topic_ring_t* r;
-    r = (struct topic_ring_t*)topic_partition_get_addr(
-        par, topic->external_ring);
-    ASSERT((void*)&par->topic_buffer <= (void*)r
-           && (void*)r < (void*)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
+    r = (struct topic_ring_t*)topic_partition_get_addr(par, topic->shadow_ring);
+    ASSERT((uintptr_t)&par->topic_buffer <= (uintptr_t)r);
+    ASSERT((uintptr_t)r < (uintptr_t)&par->topic_buffer[TOPIC_BUFFER_SIZE]);
     return (r);
 }
 
@@ -674,13 +708,30 @@ thinros_advertise(_out struct publisher_t* publisher,
     ASSERT(n != NULL);
     ASSERT(topic_name != NULL);
 
-    struct topic_registry_item_t* topic
-        = topic_partition_get_by_name(n->par, topic_name);
-    topic->to_publish          = TRUE;
-    struct topic_ring_t* local = get_local_ring(n->par, topic);
-    topic_writer_init(&publisher->writer, local);
+    struct topic_registry_item_t* topic;
+    struct topic_ring_t *         local, *shadow;
+
+    topic             = topic_partition_get_by_name(n->par, topic_name);
+    topic->to_publish = TRUE;
+    local             = get_local_ring(n->par, topic);
+    shadow            = get_shadow_ring(n->par, topic);
+
+    topic_writer_init(&publisher->wr_local, local);
+    topic_writer_init(&publisher->wr_shadow, shadow);
     publisher->topic_uuid = topic_namespace_query_by_name(topic_name)->uuid;
     publisher->partition  = n->par;
+    publisher->topic_idx  = topic->index;
+}
+
+static struct topic_registry_item_t *
+thinros_publisher_get_topic(struct publisher_t* publisher)
+{
+    ASSERT(publisher != NULL);
+    ASSERT(publisher->topic_idx < publisher->partition->registry.n);
+
+    struct topic_registry_item_t* topic;
+    topic = &publisher->partition->registry.topic[publisher->topic_idx];
+    return topic;
 }
 
 void
@@ -690,7 +741,18 @@ thinros_publish(
     ASSERT(publisher != NULL);
     ASSERT(message != NULL);
 
-    topic_writer_write(&publisher->writer, message, sz);
+    struct topic_registry_item_t* topic;
+    topic = thinros_publisher_get_topic(publisher);
+
+    if (topic->pattern & PUBLISH_LOCAL)
+    {
+        topic_writer_write(&publisher->wr_local, message, sz);
+    }
+
+    if (topic->pattern & PUBLISH_CROSS_PARTITION)
+    {
+        topic_writer_write(&publisher->wr_shadow, message, sz);
+    }
 }
 
 static void
@@ -711,15 +773,14 @@ thinros_subscribe(_in struct subscriber_t* subscriber,
     ASSERT(topic_name != NULL);
     ASSERT(callback != NULL);
 
-    struct topic_registry_item_t* topic
-        = topic_partition_get_by_name(n->par, topic_name);
+    struct topic_registry_item_t* topic;
+    struct topic_ring_t*          local;
+
+    topic               = topic_partition_get_by_name(n->par, topic_name);
     topic->to_subscribe = TRUE;
 
-    struct topic_ring_t *local, *external;
-    local    = get_local_ring(n->par, topic);
-    external = get_external_ring(n->par, topic);
-    topic_reader_init(&subscriber->local_reader, local);
-    topic_reader_init(&subscriber->external_reader, external);
+    local = get_local_ring(n->par, topic);
+    topic_reader_init(&subscriber->reader, local);
     subscriber->callback = callback;
     node_handle_register_subscriber(n, subscriber);
     subscriber->topic_uuid = topic_namespace_query_by_name(topic_name)->uuid;
@@ -738,9 +799,7 @@ thinros_spin_once(_in struct node_handle_t* n)
         ASSERT(s != NULL);
         ASSERT(s->callback != NULL);
         total_handled += topic_reader_read_all(
-            &s->external_reader, n->buffer, MAX_MESSAGE_SIZE, s->callback);
-        total_handled += topic_reader_read_all(
-            &s->local_reader, n->buffer, MAX_MESSAGE_SIZE, s->callback);
+            &s->reader, n->buffer, MAX_MESSAGE_SIZE, s->callback);
     }
     return total_handled;
 }
@@ -796,24 +855,24 @@ thinros_spin(_in struct node_handle_t* n, enum thinros_spin_type_t type,
 
 static void
 topic_replicator_init(struct topic_replicator_t* rep, size_t uuid,
-    struct topic_ring_t* external_ring)
+    struct topic_ring_t* local_ring)
 {
     ASSERT(rep != NULL);
-    ASSERT(external_ring != NULL);
+    ASSERT(local_ring != NULL);
 
     rep->topic_uuid = uuid;
     rep->n_sources  = 0;
-    topic_writer_init(&rep->destination, external_ring);
+    topic_writer_init(&rep->destination, local_ring);
 }
 
 static void
 topic_replicator_connect(
-    struct topic_replicator_t* rep, struct topic_ring_t* local_ring)
+    struct topic_replicator_t* rep, struct topic_ring_t* shadow_ring)
 {
     size_t idx = atomic_fetch_add(&rep->n_sources, 1);
     ASSERT(idx < MAX_PARTITIONS);
     struct topic_reader_t* rd = &rep->sources[idx];
-    topic_reader_init(rd, local_ring);
+    topic_reader_init(rd, shadow_ring);
 }
 
 static void
@@ -855,25 +914,26 @@ thinros_master_connect_topics_per_partition(
         struct topic_registry_item_t* topic = &topics->topic[i];
         if (topic->uuid == rep->topic_uuid && topic->to_publish == TRUE)
         {
-            struct topic_ring_t* local = get_local_ring(par, topic);
-            topic_replicator_connect(rep, local);
+            struct topic_ring_t* shadow = get_shadow_ring(par, topic);
+            topic_replicator_connect(rep, shadow);
+            topic->pattern |= PUBLISH_CROSS_PARTITION;
         }
     }
 }
 
 static void
 thinros_master_connect_topics(struct topic_replicator_t* rep,
-    size_t current_partition_idx, struct thinros_master_t* m)
+    size_t current_partition_idx, struct thinros_master_t* master)
 {
     size_t i;
-    for (i = 0; i < m->n_partitions; i++)
+    for (i = 0; i < master->n_partitions; i++)
     {
         if (i == current_partition_idx)
         {
             continue;
         }
         thinros_master_connect_topics_per_partition(
-            rep, m->partitions[i].address);
+            rep, master->partitions[i].address);
     }
 }
 
@@ -897,12 +957,18 @@ thinros_master_build(struct thinros_master_t* m)
                 continue;
             }
 
+            if (topic->to_publish == TRUE)
+            {
+                topic->pattern |= PUBLISH_LOCAL;
+            }
+
             /* subscribe, requires a replicator */
-            struct topic_replicator_t* rep
-                = &par->replicators[par->n_replicators++];
-            struct topic_ring_t* external_ring
-                = get_external_ring(par->address, topic);
-            topic_replicator_init(rep, topic->uuid, external_ring);
+            struct topic_replicator_t* rep;
+            struct topic_ring_t* local;
+
+            rep = &par->replicators[par->n_replicators++];
+            local = get_local_ring(par->address, topic);
+            topic_replicator_init(rep, topic->uuid, local);
             thinros_master_connect_topics(rep, i, m);
         }
     }

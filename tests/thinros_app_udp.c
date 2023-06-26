@@ -14,8 +14,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "lib/thinros_core.h"
-#include "lib/thinros_linux.h"
+#include "thinros_core.h"
+#include "thinros_linux.h"
 
 struct node_handle_t this_node;
 

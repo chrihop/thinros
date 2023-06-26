@@ -1,0 +1,65 @@
+{
+  "$schema": "https://github.com/chrihop/thinros/blob/v2/lib/topic.schema.json",
+  "topics": [
+    {
+      "name": "control",
+      "queue_length": 32,
+      "c_definition": [
+        "unsigned int id",
+        "unsigned int len",
+        "unsigned char data[32]"
+      ]
+    },
+    {
+      "name": "lidar",
+      "queue_length": 8,
+      "c_definition": [
+        "unsigned int len",
+        "unsigned char data[128]"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "name": "advanced_controller",
+        "publish": ["control"],
+        "subscribe": []
+      },
+      {
+        "name": "attacker",
+        "publish": ["control"],
+        "subscribe": []
+      },
+      {
+        "name": "lidar_sensor",
+        "publish": ["lidar"],
+        "subscribe": []
+      },
+      {
+        "name": "safety_controller",
+        "publish": ["control"],
+        "subscribe": ["lidar"]
+      },
+      {
+        "name": "executor",
+        "publish": [],
+        "subscribe": ["control"]
+      }
+    ],
+    "partitions": [
+      {
+        "id": 0,
+        "nodes": ["advanced_controller", "attacker"]
+      },
+      {
+        "id": 1,
+        "nodes": ["safety_controller", "lidar_sensor"]
+      },
+      {
+        "id": 2,
+        "nodes": ["executor"]
+      }
+    ]
+  }
+}

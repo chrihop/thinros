@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chrihop/thinros/blob/v2/tools/topic.schema.json",
+  "title": "ThinROS Platform Configuration",
+  "description": "ThinROS Platform Configuration",
+  "type": "object",
+  "properties": {
+    "nonsecure_partition": {
+      "type": "object",
+      "description": "Non-secure partition configuration",
+      "properties": {
+        "base": {
+          "type": "string",
+          "description": "Base address of the non-secure partition"
+        },
+        "size": {
+          "type": "string",
+          "description": "Size of the non-secure partition"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "description": "Limits for the ThinROS internal data structures",
+      "properties": {
+        "topic-buffer-size": {
+          "type": "string",
+          "description": "Size of the topic buffer in bytes"
+        },
+        "max-message-size": {
+          "type": "string",
+          "description": "Maximum size of a message in bytes"
+        },
+        "max-topics": {
+          "type": "integer",
+          "description": "Maximum number of topics in the system",
+          "minimum": 1
+        },
+        "max-topics-subscribe": {
+          "type": "integer",
+          "description": "Maximum number of topics a client can subscribe to",
+          "minimum": 1
+        },
+        "max-topics-publish": {
+          "type": "integer",
+          "description": "Maximum number of topics a client can publish to",
+          "minimum": 1
+        },
+        "max-ring-elements": {
+          "type": "integer",
+          "description": "Maximum number of elements in a topic ring buffer",
+          "minimum": 1
+        },
+        "topic-name-size": {
+          "type": "integer",
+          "description": "Maximum size of a topic name in bytes",
+          "minimum": 1
+        },
+        "node-name-size": {
+          "type": "integer",
+          "description": "Maximum size of a node name in bytes",
+          "minimum": 1
+        },
+        "padding": {
+          "type": "string",
+          "description": "Paddings between topic rings in the ring buffer"
+        },
+        "max-partitions": {
+          "type": "integer",
+          "description": "Maximum number of partitions",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

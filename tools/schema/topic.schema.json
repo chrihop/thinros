@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chrihop/thinros/blob/v2/tools/topic.schema.json",
+  "title": "ThinROS Topic Definition",
+  "description": "A topic definition for ThinROS communication nodes.",
+  "type": "object",
+  "properties": {
+    "topics": {
+      "description": "A list of topics to be published or subscribed to.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The name of the topic.",
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_]+$"
+          },
+          "queue_length": {
+            "description": "The queue length of the topic.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "c_definition": {
+            "description": "The C definition of the data fields.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_ \\t\\[\\]\\(\\)\\*]+$"
+            }
+          }
+        }
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "network": {
+      "description": "The network configuration.",
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "description": "A list of nodes publish / subscribe messages.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the node.",
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_]+$"
+              },
+              "publish": {
+                "description": "A list of topics to publish.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "subscribe": {
+                "description": "A list of topics to subscribe to.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "partitions": {
+          "description": "A list of partitions.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Partition ID.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "nodes": {
+                "description": "A list of nodes in the partition.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
