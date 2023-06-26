@@ -325,7 +325,7 @@ struct topic_replicator_t
 {
     size_t                topic_uuid;
     size_t                n_sources;
-    struct topic_reader_t sources[MAX_PARTITIONS];
+    struct topic_reader_t sources[MAX_THINROS_PARTITIONS];
     struct topic_writer_t destination;
 };
 
@@ -339,7 +339,7 @@ struct master_record_t
 struct thinros_master_t
 {
     size_t                 n_partitions;
-    struct master_record_t partitions[MAX_PARTITIONS];
+    struct master_record_t partitions[MAX_THINROS_PARTITIONS];
 };
 
 enum thinros_spin_type_t

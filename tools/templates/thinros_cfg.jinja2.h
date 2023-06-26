@@ -24,7 +24,7 @@
 #define MAX_RING_ELEMS				({{data.limits['max-ring-elements']}}lu) /* max number of elements a topic could buffer */
 #define NODE_NAME_SIZE				({{data.limits['node-name-size']}}lu)
 #define PADDING_BYTES				({{data.limits['padding']}}lu)
-#define MAX_PARTITIONS				({{data.limits['max-partitions']}}lu)
+#define MAX_THINROS_PARTITIONS		({{data.limits['max-partitions']}}lu)
 #define INVALID_TOPIC_UUID			(0lu)
 
 /**

@@ -870,7 +870,7 @@ topic_replicator_connect(
     struct topic_replicator_t* rep, struct topic_ring_t* shadow_ring)
 {
     size_t idx = atomic_fetch_add(&rep->n_sources, 1);
-    ASSERT(idx < MAX_PARTITIONS);
+    ASSERT(idx < MAX_THINROS_PARTITIONS);
     struct topic_reader_t* rd = &rep->sources[idx];
     topic_reader_init(rd, shadow_ring);
 }
@@ -896,7 +896,7 @@ void
 thinros_master_add(struct thinros_master_t* m, struct topic_partition_t* par)
 {
     size_t idx = atomic_fetch_add(&m->n_partitions, 1);
-    ASSERT(idx < MAX_PARTITIONS);
+    ASSERT(idx < MAX_THINROS_PARTITIONS);
     par->partition_id         = idx;
     struct master_record_t* r = &m->partitions[idx];
     r->address                = par;
