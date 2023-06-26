@@ -84,3 +84,16 @@ target_link_libraries(thinros_app_helper
 
 target_link_options(thinros_app_helper
     PRIVATE -rdynamic)
+
+add_executable(thinros_dos_demo_adv_controller
+    thinros_dos_demo_adv_controller.c
+    )
+
+target_link_options(
+    thinros_dos_demo_adv_controller
+    PRIVATE -rdynamic)
+
+target_link_libraries(
+    thinros_dos_demo_adv_controller
+    PRIVATE thinros)
+

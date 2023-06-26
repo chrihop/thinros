@@ -22,6 +22,7 @@ else ()
 endif ()
 
 set(DRIVER_SRC
+    thinros_module.c
     )
 
 foreach(SRC ${DRIVER_SRC})
@@ -34,8 +35,8 @@ string (REPLACE ";" " " DRIVER_OBJ "${DRIVER_OBJ}")
 file (
     WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Makefile
     "obj-m := ${DRIVER}.o" "\n"
-    "${DRIVER}-objs += ${DRIVER_OBJ}" "\n"
-    "ccflags-y += -D_LINUX_KERNEL_ -I${CMAKE_SOURCE_DIR} -I${CMAKE_CURRENT_SOURCE_DIR}" "\n"
+    "${DRIVER}-y += ${DRIVER_OBJ}" "\n"
+    "ccflags-y += -D_LINUX_KERNEL_ -I${THINROS_SRC_DIR}/lib -I${THINROS_GEN_DIR} -I${CMAKE_CURRENT_SOURCE_DIR}" "\n"
     "ldflags-y += " "\n"
 )
 
@@ -44,7 +45,6 @@ add_custom_command(
     COMMAND ${KBUILD_CMD} modules
     DEPENDS ${DRIVER_SRC}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-#    COMMENTS "Building ${DRIVER}.ko"
     VERBATIM
 )
 
@@ -74,7 +74,6 @@ add_dependencies(
 add_library(
     ${DRIVER}.objs
     STATIC EXCLUDE_FROM_ALL
-    ${DRIVER}.c
     ${DRIVER_SRC}
 )
 

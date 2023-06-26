@@ -15,7 +15,7 @@
 #include <linux/gfp.h>
 #include <linux/atomic.h>
 
-#include "lib/thinros_core.h"
+#include "thinros_core.h"
 #include "thinros_config.h"
 
 #define DRIVER_AUTHOR	"Hao Chen <hao.chen@yale.edu>"
@@ -123,7 +123,7 @@ static void thinros_shm_link(struct vm_area_struct * vma)
 
 	agent = (struct thinros_shm_agent *) vma->vm_private_data;
 
-	debug("remap_pfn_range vma 0x%lx pfn 0x%lx size %lu protection 0x%llx\n",
+	debug("remap_pfn_range vma 0x%lx pfn 0x%lx size %llu protection 0x%llx\n",
 		vma->vm_start, shm.paddr >> PAGE_SHIFT, NONSECURE_PARTITION_SIZE,
 		(unsigned long long) vma->vm_page_prot.pgprot);
 
