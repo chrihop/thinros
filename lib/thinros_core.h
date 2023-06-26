@@ -230,8 +230,8 @@ struct topic_namespace_item_t
 
 struct topic_namespace_t
 {
-    size_t                        n;
-    struct topic_namespace_item_t topic[MAX_TOPICS];
+    size_t                          n;
+    struct topic_namespace_item_t * topic;
 };
 
 typedef size_t relative_addr_t;
