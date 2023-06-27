@@ -1,0 +1,63 @@
+topic control(32) {
+    unsigned int id;
+    unsigned int len;
+    unsigned int sequence;
+    unsigned int timestamp;
+    unsigned char data[32];
+}
+
+topic lidar(8) {
+    unsigned int len;
+    unsigned char data[128];
+}
+
+node advanced_controller {
+    publish = {
+        control
+    }
+}
+
+node attacker {
+    publish = {
+        control
+    }
+}
+
+node lidar_sensor {
+    publish = {
+        lidar
+    }
+}
+
+node safety_controller {
+    publish = {
+        control
+    }
+    subscribe = {
+        lidar
+    }
+}
+
+node executor {
+    subscribe = {
+        control
+    }
+}
+
+partition nonsecure(0) {
+    node advanced_controller;
+    node attacker;
+}
+
+partition safety(1) {
+    node lidar_sensor;
+    node safety_controller;
+}
+
+partition actuation(2) {
+    node executor;
+}
+
+misc {
+    base = 0x8000llu;
+}
