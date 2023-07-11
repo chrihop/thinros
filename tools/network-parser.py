@@ -14,9 +14,10 @@ import jsonschema
 tokens = (
     'TOPIC', 'NODE', 'PARTITION', 'MISC',
     'PUBLISH', 'SUBSCRIBE',
-    'STATEMENT', 'IDENTIFIER', 'NUMBER', 'STRING', 'COMMENT',
+    'STARTUP', 'SHUTDOWN', 'ON_SPIN', 'DEFAULT',
+    'IDENTIFIER', 'STATEMENT', 'NUMBER', 'STRING', 'COMMENT',
     'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET',
-    'COMMA', 'EQUALS', 'SEMICOLON', 'COLON'
+    'COMMA', 'EQUALS', 'MAPS_TO', 'SEMICOLON', 'COLON'
 )
 
 t_ignore = ' \t\r'
@@ -28,32 +29,52 @@ def t_COMMENT(t):
 
 
 def t_TOPIC(t):
-    r'topic'
+    r'\btopic\b'
     return t
 
 
 def t_NODE(t):
-    r'node'
+    r'\bnode\b'
     return t
 
 
 def t_PARTITION(t):
-    r'partition'
+    r'\bpartition\b'
     return t
 
 
 def t_MISC(t):
-    r'misc'
+    r'\bmisc\b'
     return t
 
 
 def t_PUBLISH(t):
-    r'publish'
+    r'\bpublish\b'
     return t
 
 
 def t_SUBSCRIBE(t):
-    r'subscribe'
+    r'\bsubscribe\b'
+    return t
+
+
+def t_STARTUP(t):
+    r'\bstartup\b'
+    return t
+
+
+def t_SHUTDOWN(t):
+    r'\bshutdown\b'
+    return t
+
+
+def t_ON_SPIN(t):
+    r'\bon_spin\b'
+    return t
+
+
+def t_DEFAULT(t):
+    r'\bdefault\b'
     return t
 
 
@@ -112,6 +133,11 @@ def t_EQUALS(t):
     return t
 
 
+def t_MAPS_TO(t):
+    r'->'
+    return t
+
+
 def t_SEMICOLON(t):
     r';'
     return t
@@ -128,7 +154,7 @@ def t_newline(t):
 
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    print(f"Illegal character `{t.value[0]}`")
     t.lexer.skip(1)
 
 
@@ -200,40 +226,74 @@ def p_topic_item_type(p):
 
 def p_node_block(p):
     """
-    node_block : NODE IDENTIFIER node_body
+    node_block : NODE IDENTIFIER LBRACE node_body RBRACE
+               | NODE IDENTIFIER LBRACE RBRACE
     """
-    p[0] = {
-        'type': 'node',
-        'name': p[2],
-        'body': p[3]
-    }
+    if len(p) == 6:
+        p[0] = {
+            'type': 'node',
+            'name': p[2],
+            'body': p[4]
+        }
+    else:
+        p[0] = {
+            'type': 'node',
+            'name': p[2],
+            'body': []
+        }
 
 
 def p_node_body(p):
     """
-    node_body : LBRACE publish_block subscribe_block RBRACE
-              | LBRACE publish_block RBRACE
-              | LBRACE subscribe_block RBRACE
-              | LBRACE RBRACE
+    node_body : node_body_block node_body
+              | node_body_block
     """
-    if len(p) == 5:
-        p[0] = {'publish': p[2]['body'], 'subscribe': p[3]['body']}
-    elif len(p) == 4 and p[2]['type'] == 'publish-list':
-        p[0] = {'publish': p[2]['body'], 'subscribe': []}
-    elif len(p) == 4 and p[2]['type'] == 'subscribe-list':
-        p[0] = {'publish': [], 'subscribe': p[2]['body']}
+    if len(p) == 2:
+        p[0] = [p[1]]
     else:
-        p[0] = {'publish': [], 'subscribe': []}
+        p[0] = [p[1]] + p[2]
+
+
+def p_node_body_block(p):
+    """
+    node_body_block : publish_block
+                    | subscribe_block
+                    | on_startup_block
+                    | on_shutdown_block
+                    | on_spin_block
+    """
+    p[0] = p[1]
 
 
 def p_publish_block(p):
     """
-    publish_block : PUBLISH EQUALS LBRACE action_body RBRACE
+    publish_block : PUBLISH EQUALS LBRACE advertise_body RBRACE
     """
     p[0] = {
         'type': 'publish-list',
         'body': p[4]
     }
+
+
+def p_advertise_body(p):
+    """
+    advertise_body : advertise_body COMMA advertise_item
+                   | advertise_body COMMA
+                   | advertise_item
+    """
+    if len(p) == 2:
+        p[0] = [p[1]]
+    elif len(p) == 3:
+        p[0] = p[1]
+    else:
+        p[0] = p[1] + [p[3]]
+
+
+def p_advertise_item(p):
+    """
+    advertise_item : IDENTIFIER
+    """
+    p[0] = p[1]
 
 
 def p_subscribe_block(p):
@@ -248,24 +308,105 @@ def p_subscribe_block(p):
 
 def p_action_body(p):
     """
-    action_body : action_body action_body_item
-                | action_body_item
+    action_body : action_body COMMA action_item
+                | action_body COMMA
+                | action_item
     """
     if len(p) == 2:
         p[0] = [p[1]]
-    else:
-        p[0] = p[1] + [p[2]]
-
-
-def p_action_body_item(p):
-    """
-    action_body_item : IDENTIFIER
-                     | COMMA IDENTIFIER
-    """
-    if len(p) == 2:
+    elif len(p) == 3:
         p[0] = p[1]
     else:
-        p[0] = p[2]
+        p[0] = p[1] + [p[3]]
+
+
+def p_action_item(p):
+    """
+    action_item : IDENTIFIER MAPS_TO IDENTIFIER LPAREN RPAREN
+                | IDENTIFIER MAPS_TO DEFAULT
+    """
+    if len(p) == 6:
+        p[0] = {
+            'topic': p[1],
+            'callback': p[3]
+        }
+    else:
+        p[0] = {
+            'topic': p[1],
+            'callback': 'default'
+        }
+
+
+def p_on_startup_block(p):
+    """
+    on_startup_block : STARTUP EQUALS LBRACE callback_body RBRACE
+                     | STARTUP EQUALS DEFAULT SEMICOLON
+    """
+    if len(p) == 6:
+        p[0] = {
+            'type': 'on-startup',
+            'body': p[4]
+        }
+    else:
+        p[0] = {
+            'type': 'on-startup',
+            'body': ['default']
+        }
+
+
+def p_callback_body(p):
+    """
+    callback_body : callback_body COMMA callback_item
+                  | callback_body COMMA
+                  | callback_item
+    """
+    if len(p) == 2:
+        p[0] = [p[1]]
+    elif len(p) == 3:
+        p[0] = p[1]
+    else:
+        p[0] = p[1] + [p[3]]
+
+
+def p_callback_item(p):
+    """
+    callback_item : IDENTIFIER LPAREN RPAREN
+    """
+    p[0] = p[1]
+
+
+def p_on_shutdown_block(p):
+    """
+    on_shutdown_block : SHUTDOWN EQUALS LBRACE callback_body RBRACE
+                        | SHUTDOWN EQUALS DEFAULT SEMICOLON
+    """
+    if len(p) == 6:
+        p[0] = {
+            'type': 'on-shutdown',
+            'body': p[4]
+        }
+    else:
+        p[0] = {
+            'type': 'on-shutdown',
+            'body': ['default']
+        }
+
+
+def p_on_spin_block(p):
+    """
+    on_spin_block : ON_SPIN EQUALS LBRACE callback_body RBRACE
+                  | ON_SPIN EQUALS DEFAULT SEMICOLON
+    """
+    if len(p) == 6:
+        p[0] = {
+            'type': 'on-spin',
+            'body': p[4]
+        }
+    else:
+        p[0] = {
+            'type': 'on-spin',
+            'body': ['default']
+        }
 
 
 def p_partition_block(p):
@@ -339,12 +480,20 @@ def p_misc_expression(p):
     p[0] = p[1]
 
 
+class ParserError(Exception):
+    def __init__(self, message, token=None, lineno=-1, lexpos=-1):
+        self.message = message
+        self.token = token
+        self.lineno = lineno
+        self.lexpos = lexpos
+
+
 def p_error(p):
     if p:
-        print(f'Syntax error at `{p.value}` type: {p.type} line: {p.lineno}'
-              f' {p.lexpos}')
+        raise ParserError(f'Syntax error at `{p.value}` type: {p.type} line: {p.lineno}'
+              f' {p.lexpos}', p, p.lineno, p.lexpos)
     else:
-        print('Syntax error at EOF')
+        raise ParserError('Syntax error at EOF')
 
 
 parser = yacc.yacc()
@@ -367,11 +516,34 @@ def code_generator(ast, output: Path):
             })
             network['topics'].append(topic)
         elif o['type'] == 'node':
+            on_startup = []
+            on_shutdown = []
+            on_spin = []
+            pub_topics = []
+            sub_topics = []
+            for b in o['body']:
+                if b['type'] == 'on-startup':
+                    on_startup.extend(b['body'])
+                elif b['type'] == 'on-shutdown':
+                    on_shutdown.extend(b['body'])
+                elif b['type'] == 'on-spin':
+                    on_spin.extend(b['body'])
+                elif b['type'] == 'publish-list':
+                    pub_topics = b['body']
+                elif b['type'] == 'subscribe-list':
+                    sub_topics = b['body']
             node = OrderedDict({
                 'name': o['name'],
-                'publish': o['body']['publish'],
-                'subscribe': o['body']['subscribe']
+                'publish': pub_topics,
+                'subscribe': sub_topics,
             })
+            if on_startup:
+                node['on_startup'] = on_startup
+            if on_shutdown:
+                node['on_shutdown'] = on_shutdown
+            if on_spin:
+                node['on_spin'] = on_spin
+
             network['network']['nodes'].append(node)
         elif o['type'] == 'partition':
             partition = OrderedDict({
@@ -394,7 +566,33 @@ def code_generator(ast, output: Path):
 
 
 def main(file: Path, out_file: Path):
-    result = parser.parse(file.read_text())
+    try:
+        result = parser.parse(file.read_text())
+    except ParserError as e:
+        print(e.message)
+        if e.lineno != -1:
+            texts = file.read_text()
+            lines = texts.splitlines()
+            line_from = max(e.lineno - 5, 0)
+            line_to = min(e.lineno + 5, len(lines))
+            for i in range(line_from, line_to):
+                if i == e.lineno - 1:
+                    print(f'-> {i+1:3d} {lines[i]}')
+                    last_cr = texts.rfind('\n', 0, e.lexpos)
+                    if last_cr < 0:
+                        last_cr = 0
+                    column = (e.lexpos - last_cr) + 6
+                    print(' ' * column + '^')
+                    print(' ' * column + '+', end='')
+                    print('-' * 5, end='')
+                    print(f' *{e.token.type}({e.token.value}), ', end='')
+                    next_tokens = list(lexer.token() for _ in range(5))
+                    next_tokens = next_tokens[:min(5, len(next_tokens))]
+                    next_tokens = [f'{t.type}({t.value})' for t in next_tokens if t is not None]
+                    print(f'{", ".join(next_tokens)}')
+                else:
+                    print(f'   {i+1:3d} {lines[i]}')
+        return
     code_generator(result, out_file)
 
 

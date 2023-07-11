@@ -71,6 +71,8 @@ set_property(CACHE THINROS_NETWORK PROPERTY STRINGS ${SUPPORTED_NETWORKS})
 select_json("config" "network" ${THINROS_NETWORK} SUPPORTED_NETWORKS THINROS_NETWORK_JSON)
 # -- #
 
+set (THINROS_C_DEFINITIONS "" NOCACHE)
+
 # -- build for --
 if (BUILD_FOR STREQUAL "linux-user")
     list (APPEND THINROS_C_DEFINITIONS
@@ -151,7 +153,7 @@ list(APPEND THINROS_C_DEFINITIONS
 # -- draw the network --
 add_custom_command(
     OUTPUT ${THINROS_OBJ_DIR}/thinros.network.draw.tstamp
-    COMMAND python3 ${THINROS_TOOLS_DIR}/topic_gen.py
+    COMMAND python3 ${THINROS_TOOLS_DIR}/network-generator.py
         --platform "${THINROS_PLATFORM_JSON}"
         --network "${THINROS_NETWORK_JSON}"
         --out_dir "${THINROS_OBJ_DIR}"
@@ -166,6 +168,15 @@ add_custom_target(
     DEPENDS ${THINROS_OBJ_DIR}/thinros.network.draw.tstamp
 )
 # -- #
+
+# -- unit tests options --
+if (THINROS_UNIT_TEST)
+    list (APPEND THINROS_C_DEFINITIONS
+        _THINROS_UNIT_TESTS_
+    )
+endif()
+# -- #
+
 
 add_compile_definitions(${THINROS_C_DEFINITIONS})
 

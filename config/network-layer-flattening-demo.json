@@ -1,0 +1,180 @@
+{
+  "$schema": [
+    "https://github.com/chrihop/thinros/blob/v2/lib/topic.schema.json"
+  ],
+  "topics": [
+    {
+      "name": "t1",
+      "queue_length": 32,
+      "c_definitions": [
+        "unsigned int id ;",
+        "unsigned int len ;",
+        "unsigned int sequence ;",
+        "unsigned int timestamp ;"
+      ]
+    },
+    {
+      "name": "t2",
+      "queue_length": 32,
+      "c_definitions": [
+        "unsigned int id ;",
+        "unsigned int len ;",
+        "unsigned int sequence ;",
+        "unsigned int timestamp ;"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "name": "pub_a",
+        "publish": [
+          "t1"
+        ],
+        "subscribe": [],
+        "on_startup": [
+          "pub_a_startup"
+        ]
+      },
+      {
+        "name": "pub_b",
+        "publish": [
+          "t1"
+        ],
+        "subscribe": []
+      },
+      {
+        "name": "pub_c",
+        "publish": [
+          "t2"
+        ],
+        "subscribe": []
+      },
+      {
+        "name": "sub_a",
+        "publish": [],
+        "subscribe": [
+          {
+            "topic": "t1",
+            "callback": "on_t1"
+          }
+        ]
+      },
+      {
+        "name": "sub_b",
+        "publish": [],
+        "subscribe": [
+          {
+            "topic": "t1",
+            "callback": "on_t1"
+          }
+        ]
+      },
+      {
+        "name": "sub_c",
+        "publish": [],
+        "subscribe": [
+          {
+            "topic": "t2",
+            "callback": "on_t2"
+          }
+        ]
+      },
+      {
+        "name": "sub_d",
+        "publish": [],
+        "subscribe": [
+          {
+            "topic": "t2",
+            "callback": "on_t2"
+          }
+        ]
+      },
+      {
+        "name": "pipe_a",
+        "publish": [
+          "t2"
+        ],
+        "subscribe": [
+          {
+            "topic": "t1",
+            "callback": "on_t1"
+          }
+        ]
+      },
+      {
+        "name": "pipe_b",
+        "publish": [
+          "t2"
+        ],
+        "subscribe": [
+          {
+            "topic": "t1",
+            "callback": "on_t1"
+          }
+        ]
+      },
+      {
+        "name": "complex_a",
+        "publish": [
+          "t1",
+          "t2"
+        ],
+        "subscribe": [
+          {
+            "topic": "t1",
+            "callback": "ca_on_t1"
+          },
+          {
+            "topic": "t1",
+            "callback": "ca_log_t1"
+          },
+          {
+            "topic": "t2",
+            "callback": "ca_on_t2"
+          },
+          {
+            "topic": "t1",
+            "callback": "ca_check_t1"
+          }
+        ],
+        "on_startup": [
+          "startup_1",
+          "startup_2"
+        ],
+        "on_shutdown": [
+          "default"
+        ],
+        "on_spin": [
+          "regular",
+          "error_checks",
+          "periodic"
+        ]
+      }
+    ],
+    "partitions": [
+      {
+        "name": "p1",
+        "id": 1,
+        "nodes": [
+          "pub_a",
+          "pub_b",
+          "sub_a",
+          "sub_b",
+          "sub_c",
+          "pipe_a"
+        ]
+      },
+      {
+        "name": "p2",
+        "id": 2,
+        "nodes": [
+          "pub_c",
+          "sub_d",
+          "pipe_b",
+          "complex_a"
+        ]
+      }
+    ]
+  }
+}

@@ -13,14 +13,14 @@ add_custom_command(
     OUTPUT ${THINROS_GEN_DIR}/thinros_cfg.c
            ${THINROS_GEN_DIR}/thinros_cfg.h
            ${THINROS_OBJ_DIR}/thinros.gen.tstamp
-    COMMAND python3 ${THINROS_TOOLS_DIR}/topic_gen.py
+    COMMAND python3 ${THINROS_TOOLS_DIR}/network-generator.py
         --platform "${THINROS_PLATFORM_JSON}"
         --network "${THINROS_NETWORK_JSON}"
         --out_dir "${THINROS_GEN_DIR}"
     COMMAND ${CMAKE_COMMAND} -E touch ${THINROS_OBJ_DIR}/thinros.gen.tstamp
     DEPENDS ${THINROS_NETWORK_JSON}
             ${THINROS_PLATFORM_JSON}
-            ${THINROS_TOOLS_DIR}/topic_gen.py
+            ${THINROS_TOOLS_DIR}/network-generator.py
             ${THINROS_TOOLS_DIR}/templates/thinros_cfg.jinja2.c
             ${THINROS_TOOLS_DIR}/templates/thinros_cfg.jinja2.h
     WORKING_DIRECTORY ${THINROS_OBJ_DIR}
@@ -32,6 +32,7 @@ add_custom_target(
 
 set (THINROS_LIB_SRC
     "${THINROS_LIB_DIR}/thinros_core.c"
+    "${THINROS_LIB_DIR}/thinros_object.c"
     ${THINROS_GEN_SRC}
     ${EXTRA_SRC})
 

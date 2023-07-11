@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include <unistd.h>
 
 #define atomic_t(type)			volatile _Atomic(type) __attribute__ ((aligned (sizeof(unsigned long))))
 #define gcc_packed		__attribute__((packed))

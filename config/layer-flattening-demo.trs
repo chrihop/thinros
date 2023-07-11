@@ -1,0 +1,122 @@
+topic t1(32) {
+    unsigned int id;
+    unsigned int len;
+    unsigned int sequence;
+    unsigned int timestamp;
+}
+
+topic t2(32) {
+    unsigned int id;
+    unsigned int len;
+    unsigned int sequence;
+    unsigned int timestamp;
+}
+
+node pub_a {
+    startup = {
+        pub_a_startup()
+    }
+    publish = {
+        t1
+    }
+}
+
+node pub_b {
+    publish = {
+        t1
+    }
+}
+
+node pub_c {
+    publish = {
+        t2
+    }
+}
+
+node sub_a {
+    subscribe = {
+        t1 -> on_t1()
+    }
+}
+
+node sub_b {
+    subscribe = {
+        t1 -> on_t1()
+    }
+}
+
+node sub_c {
+    subscribe = {
+        t2 -> on_t2()
+    }
+}
+
+node sub_d {
+    subscribe = {
+        t2 -> on_t2()
+    }
+}
+
+node pipe_a {
+    publish = {
+        t2
+    }
+    subscribe = {
+        t1 -> on_t1(),
+    }
+}
+
+node pipe_b {
+    publish = {
+        t2
+    }
+    subscribe = {
+        t1 -> on_t1()
+    }
+}
+
+node complex_a {
+    startup = {
+        startup_1(),
+        startup_2()
+    }
+
+    shutdown = default;
+
+    on_spin = {
+        regular(),
+        error_checks(),
+        periodic()
+    }
+
+    publish = {
+        t1, t2
+    }
+
+    subscribe = {
+        t1 -> ca_on_t1(),
+        t1 -> ca_log_t1(),
+        t2 -> ca_on_t2(),
+        t1 -> ca_check_t1()
+    }
+}
+
+partition p1(1) {
+    node pub_a;
+    node pub_b;
+    node sub_a;
+    node sub_b;
+    node sub_c;
+    node pipe_a;
+}
+
+partition p2(2) {
+    node pub_c;
+    node sub_d;
+    node pipe_b;
+    node complex_a;
+}
+
+misc {
+    base = 0x8000llu;
+}

@@ -12,6 +12,9 @@ topic lidar(8) {
 }
 
 node advanced_controller {
+    startup = {
+        advanced_controller_startup()
+    }
     publish = {
         control
     }
@@ -34,13 +37,13 @@ node safety_controller {
         control
     }
     subscribe = {
-        lidar
+        lidar -> on_lidar(),
     }
 }
 
 node executor {
     subscribe = {
-        control
+        control -> on_control()
     }
 }
 

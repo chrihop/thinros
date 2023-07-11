@@ -1,0 +1,19 @@
+network "network-layer-flattening-demo.json";
+
+flatten {
+    node pub_a;
+    node pipe_a;
+    node sub_c;
+} > node aac;
+
+flatten {
+    node pub_c;
+    node sub_d;
+} > node cd;
+
+# This rule should fail, pub_b and pipe_b belong to different partitions
+flatten {
+    node pub_b;
+    node pipe_b;
+} > node bb;
+
