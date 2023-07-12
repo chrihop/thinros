@@ -5,6 +5,8 @@ import subprocess
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Tuple
+from pathlib import Path
+import json
 
 
 @dataclass
@@ -49,8 +51,8 @@ class Callback:
 @dataclass
 class Node:
     name: str
-    publish: List[Topic]
-    subscribe: List[Tuple[Topic, List[Callback]]]
+    publish: List[Topic] = field(default_factory=list)
+    subscribe: List[Tuple[Topic, List[Callback]]] = field(default_factory=list)
     startup: List[Callback] = field(default_factory=list)
     shutdown: List[Callback] = field(default_factory=list)
     spin: List[Callback] = field(default_factory=list)
@@ -112,6 +114,59 @@ class Network:
         self.topics: OrderedDict[str, Topic] = OrderedDict()
         self.nodes: OrderedDict[str, Node] = OrderedDict()
         self.partitions: OrderedDict[int, Partition] = OrderedDict()
+
+    def save(self, path: Path):
+        network = OrderedDict({
+            '$schema': 'https://github.com/chrihop/thinros/blob/v2/lib/topic.schema.json',
+            'trs': '',
+            'topics': [],
+            'network': OrderedDict({
+                'nodes': [],
+                'partitions': [],
+            }),
+        })
+        for t in self.topics.values():
+            network['topics'].append(OrderedDict({
+                'name': t.name,
+                'queue_length': t.queue_length,
+                'c_definitions': t.c_definition,
+            }))
+
+        for n in self.nodes.values():
+            node = OrderedDict({
+                'name': n.name,
+                'publish': [],
+                'subscribe': [],
+            })
+            for t in n.publish:
+                node['publish'].append(t.name)
+            for t, callbacks in n.subscribe:
+                for c in callbacks:
+                    node['subscribe'].append(OrderedDict({
+                        'topic': t.name,
+                        'callback': c.name,
+                    }))
+            if len(n.startup) > 0:
+                node['on_startup'] = []
+                for c in n.startup:
+                    node['on_startup'].append(c.name)
+            if len(n.shutdown) > 0:
+                node['on_shutdown'] = []
+                for c in n.shutdown:
+                    node['on_shutdown'].append(c.name)
+            network['network']['nodes'].append(node)
+
+        for p in self.partitions.values():
+            partition = OrderedDict({
+                'id': p.par_id,
+                'nodes': [],
+            })
+            for n in p.nodes:
+                partition['nodes'].append(n.name)
+            network['network']['partitions'].append(partition)
+
+        with open(path, 'w') as f:
+            json.dump(network, f, indent=2)
 
     def load_all(self):
         self.load_partitions()

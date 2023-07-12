@@ -201,17 +201,22 @@ def test_parser():
     pprint(result)
 
 
+flatten_spec = ''
+
+
 def code_generator(ast) -> str:
+    global flatten_spec
     flatten = OrderedDict({
         '$schema': 'https://json-schema.org/draft/2020-12/schema',
-        'network': [],
-        'flatten': [],
+        'flt': flatten_spec,
+        'networks': [],
+        'rules': [],
     })
     for o in ast:
         if 'network' in o:
-            flatten['network'].append({'network': o['network'], 'lineno': o['lineno']})
+            flatten['networks'].append({'file': o['network'], 'lineno': o['lineno']})
         elif 'flatten' in o:
-            flatten['flatten'].append({'flatten': o['flatten'], 'into': o['into'], 'lineno': o['lineno']})
+            flatten['rules'].append({'flatten': o['flatten'], 'into': o['into'], 'lineno': o['lineno']})
     return json.dumps(flatten, indent=2)
 
 
@@ -225,6 +230,9 @@ def main():
                         help='output network description file of flatten network',
                         required=True)
     args = parser.parse_args()
+
+    global flatten_spec
+    flatten_spec = args.file.absolute().as_posix()
 
     search_path = [args.file.parent]
     if args.dir.exists():

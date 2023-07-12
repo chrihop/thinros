@@ -498,10 +498,15 @@ def p_error(p):
 
 parser = yacc.yacc()
 
+network_description_file = ""
+
 
 def code_generator(ast, output: Path):
+    global network_description_file
+
     network = OrderedDict()
     network['$schema'] = "https://github.com/chrihop/thinros/blob/v2/lib/topic.schema.json",
+    network['trs'] = network_description_file
     network['topics'] = []
     network['network'] = OrderedDict({
         'nodes': [],
@@ -566,6 +571,9 @@ def code_generator(ast, output: Path):
 
 
 def main(file: Path, out_file: Path):
+    global network_description_file
+    network_description_file = file.absolute().as_posix()
+
     try:
         result = parser.parse(file.read_text())
     except ParserError as e:

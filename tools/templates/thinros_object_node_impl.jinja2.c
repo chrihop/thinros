@@ -80,6 +80,7 @@ bool {{ s.name }}(struct thinros_object_t * obj, size_t n)
 bool USE_SPIN({{ node.name }})(struct thinros_object_t * obj, size_t n)
 {
     info("{{ node.name }}: spin default\n");
+    return true;
 }
 
 {% else %}

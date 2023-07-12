@@ -104,36 +104,45 @@ typedef struct thinros_namespace_t
                 .size      = ARRAY_SIZE(__callbacks_##_name),            \
     }
 
-#define _CALLBACKS_AGGR_FUNC_ON_MSG(_name) \
-    static void _name (void* data) \
-    { \
-        thinros_object_callbacks_aggregate_t* aggr = &__aggrigate_ ## _name; \
-        for (size_t i = 0; i < aggr->size; i++) \
-        { \
-            aggr->callbacks[i].on_msg(data); \
-        } \
+#define _CALLBACKS_AGGR_FUNC_ON_MSG(_name)                                 \
+    static void _name(void* data)                                          \
+    {                                                                      \
+        thinros_object_callbacks_aggregate_t* aggr = &__aggrigate_##_name; \
+        for (size_t i = 0; i < aggr->size; i++)                            \
+        {                                                                  \
+            if (aggr->callbacks[i] != NULL)                                \
+            {                                                              \
+                aggr->callbacks[i].on_msg(data);                           \
+            }                                                              \
+        }                                                                  \
     }
 
-#define _CALLBACKS_AGGR_FUNC_ON_OBJ(_name) \
-    static void _name (struct thinros_object_t* obj) \
-    { \
-        thinros_object_callbacks_aggregate_t* aggr = &__aggrigate_ ## _name; \
-        for (size_t i = 0; i < aggr->size; i++) \
-        { \
-            aggr->callbacks[i].on_obj(obj); \
-        } \
+#define _CALLBACKS_AGGR_FUNC_ON_OBJ(_name)                                 \
+    static void _name(struct thinros_object_t* obj)                        \
+    {                                                                      \
+        thinros_object_callbacks_aggregate_t* aggr = &__aggrigate_##_name; \
+        for (size_t i = 0; i < aggr->size; i++)                            \
+        {                                                                  \
+            if (aggr->callbacks[i] != NULL)                                \
+            {                                                              \
+                aggr->callbacks[i].on_obj(obj);                            \
+            }                                                              \
+        }                                                                  \
     }
 
-#define _CALLBACKS_AGGR_FUNC_ON_SPIN(_name) \
-    static bool _name (struct thinros_object_t* obj, size_t n) \
-    { \
-        thinros_object_callbacks_aggregate_t* aggr = &__aggrigate_ ## _name; \
-        bool succ = true;                                    \
-        for (size_t i = 0; i < aggr->size; i++) \
-        { \
-            succ &= aggr->callbacks[i].on_spin(obj, n); \
-        }                                   \
-        return succ; \
+#define _CALLBACKS_AGGR_FUNC_ON_SPIN(_name)                                \
+    static bool _name(struct thinros_object_t* obj, size_t n)              \
+    {                                                                      \
+        thinros_object_callbacks_aggregate_t* aggr = &__aggrigate_##_name; \
+        bool                                  succ = true;                 \
+        for (size_t i = 0; i < aggr->size; i++)                            \
+        {                                                                  \
+            if (aggr->callbacks[i] != NULL)                                \
+            {                                                              \
+                succ &= aggr->callbacks[i].on_spin(obj, n);                \
+            }                                                              \
+        }                                                                  \
+        return succ;                                                       \
     }
 
 #define _CALLBACKS_ON_MSG(_name, ...) \
