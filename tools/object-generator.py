@@ -40,19 +40,19 @@ class Generator(Network):
         }
 
         if len(node.startup) == 0 or len(node.startup) > 1:
-            node.startup_entry = Callback('default')
+            node.startup_entry = Callback(node.name, 'default')
             aggregate['startup'].extend(node.startup)
         else:
             node.startup_entry = node.startup[0]
 
         if len(node.shutdown) == 0 or len(node.shutdown) > 1:
-            node.shutdown_entry = Callback('default')
+            node.shutdown_entry = Callback(node.name, 'default')
             aggregate['shutdown'].extend(node.shutdown)
         else:
             node.shutdown_entry = node.shutdown[0]
 
         if len(node.spin) == 0 or len(node.spin) > 1:
-            node.spin_entry = Callback('default')
+            node.spin_entry = Callback(node.name, 'default')
             aggregate['spin'].extend(node.spin)
         else:
             node.spin_entry = node.spin[0]
@@ -66,7 +66,7 @@ class Generator(Network):
         for t, callbacks in message_handlers.items():
             if len(callbacks) == 0 or len(callbacks) > 1:
                 aggregate['subscribe'][t] = {
-                    'entry': Callback('default'),
+                    'entry': Callback(node.name, 'default'),
                     'callbacks': callbacks
                 }
             else:

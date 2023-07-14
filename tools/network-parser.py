@@ -17,7 +17,7 @@ tokens = (
     'STARTUP', 'SHUTDOWN', 'ON_SPIN', 'DEFAULT',
     'IDENTIFIER', 'STATEMENT', 'NUMBER', 'STRING', 'COMMENT',
     'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET',
-    'COMMA', 'EQUALS', 'MAPS_TO', 'SEMICOLON', 'COLON'
+    'COMMA', 'EQUALS', 'MAPS_TO', 'SEMICOLON', 'DOUBLE_COLON', 'COLON'
 )
 
 t_ignore = ' \t\r'
@@ -140,6 +140,11 @@ def t_MAPS_TO(t):
 
 def t_SEMICOLON(t):
     r';'
+    return t
+
+
+def t_DOUBLE_COLON(t):
+    r'::'
     return t
 
 
@@ -322,36 +327,48 @@ def p_action_body(p):
 
 def p_action_item(p):
     """
-    action_item : IDENTIFIER MAPS_TO IDENTIFIER LPAREN RPAREN
-                | IDENTIFIER MAPS_TO DEFAULT
+    action_item : IDENTIFIER MAPS_TO method LPAREN RPAREN
+                | IDENTIFIER MAPS_TO default_method
     """
-    if len(p) == 6:
-        p[0] = {
-            'topic': p[1],
-            'callback': p[3]
-        }
-    else:
-        p[0] = {
-            'topic': p[1],
-            'callback': 'default'
-        }
+    p[0] = {
+        'topic': p[1],
+        'callback': p[3]
+    }
+
+
+def p_method(p):
+    """
+    method : IDENTIFIER DOUBLE_COLON IDENTIFIER
+           | DOUBLE_COLON IDENTIFIER
+           | IDENTIFIER
+    """
+    p[0] = {
+        'name': p[len(p) - 1],
+        'namespace': p[1] if len(p) == 4 else '',
+    }
+
+
+def p_default_method(p):
+    """
+    default_method : IDENTIFIER DOUBLE_COLON DEFAULT
+                   | DOUBLE_COLON DEFAULT
+                   | DEFAULT
+    """
+    p[0] = {
+        'name': 'default',
+        'namespace': p[1] if len(p) == 4 else '',
+    }
 
 
 def p_on_startup_block(p):
     """
     on_startup_block : STARTUP EQUALS LBRACE callback_body RBRACE
-                     | STARTUP EQUALS DEFAULT SEMICOLON
+                     | STARTUP EQUALS default_method SEMICOLON
     """
-    if len(p) == 6:
-        p[0] = {
-            'type': 'on-startup',
-            'body': p[4]
-        }
-    else:
-        p[0] = {
-            'type': 'on-startup',
-            'body': ['default']
-        }
+    p[0] = {
+        'type': 'on-startup',
+        'body': p[4] if len(p) == 6 else [p[3]]
+    }
 
 
 def p_callback_body(p):
@@ -370,7 +387,7 @@ def p_callback_body(p):
 
 def p_callback_item(p):
     """
-    callback_item : IDENTIFIER LPAREN RPAREN
+    callback_item : method LPAREN RPAREN
     """
     p[0] = p[1]
 
@@ -378,35 +395,23 @@ def p_callback_item(p):
 def p_on_shutdown_block(p):
     """
     on_shutdown_block : SHUTDOWN EQUALS LBRACE callback_body RBRACE
-                        | SHUTDOWN EQUALS DEFAULT SEMICOLON
+                        | SHUTDOWN EQUALS default_method SEMICOLON
     """
-    if len(p) == 6:
-        p[0] = {
-            'type': 'on-shutdown',
-            'body': p[4]
-        }
-    else:
-        p[0] = {
-            'type': 'on-shutdown',
-            'body': ['default']
-        }
+    p[0] = {
+        'type': 'on-shutdown',
+        'body': p[4] if len(p) == 6 else [p[3]]
+    }
 
 
 def p_on_spin_block(p):
     """
     on_spin_block : ON_SPIN EQUALS LBRACE callback_body RBRACE
-                  | ON_SPIN EQUALS DEFAULT SEMICOLON
+                  | ON_SPIN EQUALS default_method SEMICOLON
     """
-    if len(p) == 6:
-        p[0] = {
-            'type': 'on-spin',
-            'body': p[4]
-        }
-    else:
-        p[0] = {
-            'type': 'on-spin',
-            'body': ['default']
-        }
+    p[0] = {
+        'type': 'on-spin',
+        'body': p[4] if len(p) == 6 else [p[3]]
+    }
 
 
 def p_partition_block(p):

@@ -69,8 +69,19 @@
                     },
                     "callback": {
                         "description": "The callback function to be called when a message is received.",
-                        "type": "string",
-                        "pattern": "^[a-zA-Z0-9_]+$"
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "description": "The name of the callback function.",
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9_]+$"
+                          },
+                          "namespace": {
+                            "description": "The namespace of the callback function.",
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9_]*$"
+                          }
+                        }
                     }
                   }
                 }

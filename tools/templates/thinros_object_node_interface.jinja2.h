@@ -30,54 +30,54 @@ extern "C" {
 /* startup callbacks */
 {% if aggregate.startup | length > 0 %}
 {% for s in aggregate.startup %}
-void {{ s.name }}(struct thinros_object_t * obj);
+void {{ s.id() }}(struct thinros_object_t * obj);
 {% endfor %}
 {% endif %}
 
 {% if node.startup_entry.name == 'default' %}
 void USE_STARTUP({{ node.name }})(struct thinros_object_t * obj);
 {% else %}
-void {{ node.startup_entry.name }}(struct thinros_object_t * obj);
+void {{ node.startup_entry.id() }}(struct thinros_object_t * obj);
 {% endif %}
 
 
 /* shutdown callbacks */
 {% if aggregate.shutdown | length > 0 %}
 {% for s in aggregate.shutdown %}
-void {{ s.name }}(struct thinros_object_t * obj);
+void {{ s.id() }}(struct thinros_object_t * obj);
 {% endfor %}
 {% endif %}
 
 {% if node.shutdown_entry.name == 'default' %}
 void USE_SHUTDOWN({{ node.name }})(struct thinros_object_t * obj);
 {% else %}
-void {{ node.shutdown_entry.name }}(struct thinros_object_t * obj);
+void {{ node.shutdown_entry.id() }}(struct thinros_object_t * obj);
 {% endif %}
 
 /* spin callbacks */
 {% if aggregate.spin | length > 0 %}
 {% for s in aggregate.spin %}
-void {{ s.name }}(struct thinros_object_t * obj);
+void {{ s.id() }}(struct thinros_object_t * obj);
 {% endfor %}
 {% endif %}
 
 {% if node.spin_entry.name == 'default' %}
 void USE_SPIN({{ node.name }})(struct thinros_object_t * obj);
 {% else %}
-void {{ node.spin_entry.name }}(struct thinros_object_t * obj);
+void {{ node.spin_entry.id() }}(struct thinros_object_t * obj);
 {% endif %}
 
 /* message callbacks */
 {% for t, content in aggregate.subscribe.items() %}
 /* on {{ t }} */
 {% for c in content['callbacks'] %}
-void {{ c.name }}(void * data);
+void {{ c.id() }}(void * data);
 {% endfor %}
 
 {% if content['entry'].name == 'default' %}
 void USE_MESSAGE_HANDLER({{ node.name }}, {{ t }})(void * data);
 {% else %}
-void {{ content['entry'].name }}(void * data);
+void {{ content['entry'].id() }}(void * data);
 {% endif %}
 
 {% endfor %}

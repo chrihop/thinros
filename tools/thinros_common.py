@@ -45,7 +45,11 @@ class Topic:
 
 @dataclass
 class Callback:
+    namespace: str
     name: str
+
+    def id(self):
+        return f'{self.namespace}__{self.name}'
 
 
 @dataclass
@@ -207,17 +211,23 @@ class Network:
                         f'Topic {t} of node {n} is not defined, malformed '
                         f'configration!')
                 topic = self.topics[t]
-                node.on_message(topic, Callback(callback))
+                callback_name = callback['name']
+                callback_ns = callback['namespace']
+                callback_ns = node.name if callback_ns == '' else callback_ns
+                node.on_message(topic, Callback(callback_ns, callback_name))
                 topic.subscribe_by(node)
             if 'on_startup' in n:
                 for c in n['on_startup']:
-                    node.on_startup(Callback(c))
+                    ns = c['namespace'] if c['namespace'] != '' else node.name
+                    node.on_startup(Callback(ns, c['name']))
             if 'on_shutdown' in n:
                 for c in n['on_shutdown']:
-                    node.on_shutdown(Callback(c))
+                    ns = c['namespace'] if c['namespace'] != '' else node.name
+                    node.on_shutdown(Callback(ns, c['name']))
             if 'on_spin' in n:
                 for c in n['on_spin']:
-                    node.on_spin(Callback(c))
+                    ns = c['namespace'] if c['namespace'] != '' else node.name
+                    node.on_spin(Callback(ns, c['name']))
             self.nodes[name] = node
         return self
 
